@@ -9,10 +9,10 @@ def fft_radix2(arr):
         return arr[0]
     else:
         even = fft_radix2(arr[::2]) # this is the FFT of even indices
-        odd = fft_radix2(arr[1::2]) * np.exp(2*np.pi*1.j / n * np.arange(n/2)) # FFT of odd indices
+        odd = fft_radix2(arr[1::2]) * np.exp(-2*np.pi*1.j / n * np.arange(n/2)) # FFT of odd indices
         return np.concatenate([even + odd, even - odd])
 
-# Radix-2 with DIT with padding
+# Radix-2 DIT with padding
 def fft_radix2_pad(arr):
     log2len = np.log2(len(arr)) # first check if len pow 2 
     zeros = np.zeros(int(2**np.ceil(log2len)) - len(arr))
@@ -26,11 +26,10 @@ if __name__ == "__main__":
     x2 = np.array([1,2,3,4,5])
     x2_pad = np.array([1,2,3,4,5,0,0,0])
 
-    assert fft(x1) == fft_radix2(x1) 
-    assert fft(x1) == fft_radix2_pad(x1) 
-    assert fft(x2_pad) == fft_radix2(x2_pad) 
-    assert fft(x2_pad) == fft_radix2_pad(x2) 
+    assert (np.round(fft(x1),5) == np.round(fft_radix2(x1),5)).all()
+    assert (np.round(fft(x1),5) == np.round(fft_radix2_pad(x1),5)).all()
+    assert (np.round(fft(x2_pad),5) == np.round(fft_radix2(x2_pad),5)).all()
+    assert (np.round(fft(x2_pad),5) == np.round(fft_radix2_pad(x2),5)).all()
+    print("All tests passed")
     
-
-
 
