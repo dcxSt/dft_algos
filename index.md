@@ -2,122 +2,61 @@
 layout: default
 ---
 
-Text can be **bold**, _italic_, or ~~strikethrough~~.
+# Fourier Transforms (FT)
+Broadly, the fourier transform is a way of transforming some vectors or functions into other vectors or functions. The fourier transform has a broad range of applications and is central in many mathematical fields, so depending on who you ask, the fourier transform is likely to mean different things.
 
-[Link to another page](./another-page.html).
+If you ask a **mathematician** what a fourier transform is they are likely to reply with some gibberish like *"the fourier transform is a **linear operator** that acts on **Hilbert spaces** and **finite groups** with many applications that satisfies a variety of nice properties (such as invertibility) under various conditions."* 
 
-There should be whitespace between paragraphs.
+A **physicist** will say *"the fourier transfrom lies at the **core of many fundamental fields** in physics such as quantum mechanics and fluid dynamics. What's more, the fourier transform is a essential to the math behind statistical mechanics, which is the most important and fundamental field in all of physics."* 
 
-There should be whitespace between paragraphs. We recommend including a README, or a file with information about your project.
+A **signal processing engineer**, i.e. an engineer in any of these fields: music; computer vision; stock market prediction; some medical fields such as EEG/EMG/ECG analysis; power grid/energy distribution—will tell you that *the discrete fourier transform is **the most fundamental tool** that they use every day.*
 
-# Header 1
+# Discrete Fourier Transform (DFT)
+The Discrete Fourier Transform. It is often used synonymously with the Fast Fourier Transform (FFT)
 
-This is a normal paragraph following a header. GitHub is a code hosting platform for version control and collaboration. It lets you and others work together on projects from anywhere.
+# Algorithms for computing the Discrete Fourier Transform
 
-## Header 2
+## Cooley Tukey Algorithms
+Cooley Tukey Algorithms for the FFT are the most important class of fourier transform. 
 
-> This is a blockquote following a header.
->
-> When something is important enough, you do it even if the odds are not in your favor.
+### Radix-2 DIT 
+*Terminology: DIT stands for 'Decimation In Time'.*
 
-### Header 3
+The Radix-2 DIT algorithm is the simplest Cooley-Tukey algorithm to understand. It assumes that the input discrete signal has exactly \\(2^n\\) componants. 
 
-```js
-// Javascript code with syntax highlighting.
-var fun = function lang(l) {
-  dateformat.i18n = require('./lang/' + l)
-  return true;
-}
-```
+#### The algorithm
 
-```ruby
-# Ruby code with syntax highlighting
-GitHubPages::Dependencies.gems.each do |gem, version|
-  s.add_dependency(gem, "= #{version}")
-end
-```
+#### Python implementation (drop-down?)
+*code snippet here*
 
-#### Header 4
+#### Rust implementation (drop-down? how to conceal this to make article more concise?, look at raffi's website)
+*code snippet here*
 
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
+#### Algorithmi complexity
 
-##### Header 5
+*Theoretical time complexity*
 
-1.  This is an ordered list following a header.
-2.  This is an ordered list following a header.
-3.  This is an ordered list following a header.
+*Theoretical memory complexity*
 
-###### Header 6
+*Graph of Benchmarks*
 
-| head1        | head two          | three |
-|:-------------|:------------------|:------|
-| ok           | good swedish fish | nice  |
-| out of stock | good and plenty   | nice  |
-| ok           | good `oreos`      | hmm   |
-| ok           | good `zoute` drop | yumm  |
+## *A more general cooley tukey*
 
-### There's a horizontal rule below this.
-
-* * *
-
-### Here is an unordered list:
-
-*   Item foo
-*   Item bar
-*   Item baz
-*   Item zip
-
-### And an ordered list:
-
-1.  Item one
-1.  Item two
-1.  Item three
-1.  Item four
-
-### And a nested list:
-
-- level 1 item
-  - level 2 item
-  - level 2 item
-    - level 3 item
-    - level 3 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-
-### Small image
-
-![Octocat](https://github.githubassets.com/images/icons/emoji/octocat.png)
-
-### Large image
-
-![Branching](https://guides.github.com/activities/hello-world/branching.png)
+*What if the length of the array is prime?*
 
 
-### Definition lists can be used with HTML syntax.
+## An Algorithm for All Finite Groups
+[Link to paper (see page 15)](https://math.uchicago.edu/~may/REU2018/REUPapers/Dandavati.pdf)
 
-<dl>
-<dt>Name</dt>
-<dd>Godzilla</dd>
-<dt>Born</dt>
-<dd>1952</dd>
-<dt>Birthplace</dt>
-<dd>Japan</dd>
-<dt>Color</dt>
-<dd>Green</dd>
-</dl>
+*(add: other implementations)*
 
-```
-Long, single-line code blocks should not wrap. They should horizontally scroll if they are too long. This line should be long enough to demonstrate this.
-```
+# Applications of the DFT
+The DFT is perhaps the most important and basic tool in signal processing. 
 
-```
-The final element.
-```
+
+# Other related transforms
+
+## Wavelet Transforms
+
+
+
