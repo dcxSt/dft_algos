@@ -1,6 +1,11 @@
 title: DFT Algos
-logo: /assets/img/logo.png
+logo: /assets/img/fly.png
 description: An educational repository for algorithms related to the Discrete Fourier Transform
 show_downloads: true
 google_analytics:
 theme: jekyll-theme-minimal
+
+github:
+  zip_url: https://github.com/dcxSt/dft_algos/zipball/main
+  tar_url: https://github.com/dcxSt/dft_algos/tarball/main
+  repository_url: https://github.com/dcxSt/dft_algos
