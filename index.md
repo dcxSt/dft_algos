@@ -102,6 +102,15 @@ def fft(arr):
 A for-loop implementation
 (what advantages does this offer over recursive? is it faster?, more readable?)
 
+#### C implementation
+
+In place FFT. 
+
+```c
+
+
+```
+
 #### Rust implementation (drop-down? how to conceal this to make article more concise?, look at raffi's website)
 *code snippet here*
 
