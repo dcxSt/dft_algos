@@ -42,7 +42,40 @@ Cooley Tukey Algorithms for the FFT are the most important class of fast fourier
 ### Radix-2 DIT 
 *Note: DIT stands for 'Decimation In Time'.*
 
-The Radix-2 algorithm is the simplest Cooley-Tukey algorithm to understand. It assumes that the input vector (/signal) has exactly \\(2^n\\) dimensions. Then uses recursion to break each signal in half. 
+The Radix-2 algorithm is the simplest Cooley-Tukey algorithm. It assumes that the input vector (or 'signal') has exactly \\(2^r\\) dimensions (\\(r\\) is a positive integer). The algorithm shuffle's the vector's componants around, then splits the vector into two halves and reccursively applies it's self to each half of the vector, and then re-combines the output of each. 
+
+Let \\(x\\) be a \\(n = 2^r\\) dimensional vector with real or complex entries
+
+\\[x = \big[ x[0] , x[1] , x[2] , ... , x[n-1] \big]\\]
+
+And let \\(X\\) be it's fourier transform. 
+
+\\[DFT\\{x\\}[k] = X[k] = \sum_{t=0}^{n-1} x[t] e^{-t \cdot k\cdot 2\pi i / n}\\]
+
+The key insight is to realize that this sum is itsself the sum of two smaller sums that are each DFTs of subvectors of \\(x\\). 
+
+$$
+\sum_{t=0}^{n-1} x[t] e^{-t \cdot k\cdot 2\pi i / n} 
+= \left( \sum_{t_0=0}^{n/2-1} x[2t_0] e^{-t_0\cdot k\cdot 2\pi i/(n/2)} \right) 
++ e^{- k\cdot 2\pi i/n} \left( \sum_{t_1=0}^{n/2-1} x[2t_1+1] e^{-t_1\cdot k\cdot 2\pi i/(n/2)} \right)  
+$$
+
+$$
+DFT\big\{ x[0] , x[1] , ... , x[n-1] \big\} 
+= DFT\big\{ x[0] , x[2] , .. ,  x[n-2] \big\}  \\
+\hspace{15.0em}
++ e^{-k\cdot 2\pi i/n} DFT\big\{ x[1] , x[3] , ... , x[n-1] \big\}
+$$
+
+Now you can see that the right hand side is just the sum of two smaller fourier transforms. To solve those two, you reccursively apply the same trick until you get to two dimensional vectors where the Discrete Fourier Transform reduces to a trivial sum and difference.
+
+$$
+DFT\{x[0] , x[1]\} = \big[ x[0] + x[1] , x[0] - x[1] \big]
+$$
+
+
+
+*Below: Butterfly diagram of the Culey Tukey FFT.*
 
 ![DIT FFT butterfly diagram](https://raw.githubusercontent.com/dcxSt/dft_algos/gh-pages/assets/img/DIT-FFT-butterfly.png)
 
