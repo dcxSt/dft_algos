@@ -44,7 +44,7 @@ Cooley Tukey Algorithms for the FFT are the most important class of fast fourier
 
 The Radix-2 algorithm is the simplest Cooley-Tukey algorithm to understand. It assumes that the input vector (/signal) has exactly \\(2^n\\) dimensions. Then uses recursion to break each signal in half. 
 
-![DIT FFT butterfly diagram](../assets/img/DIT-FFT-butterfly.png)
+![DIT FFT butterfly diagram](https://raw.githubusercontent.com/dcxSt/dft_algos/gh-pages/assets/img/DIT-FFT-butterfly.png)
 
 #### Python implementation 
 
