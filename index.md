@@ -14,6 +14,8 @@ A **signal processing engineer**, i.e. an engineer in any of these fields: music
 In this repository we explore some algorithms for computing the discrete fourier transform of vectors. 
 
 # Discrete Fourier Transform (DFT)
+Fourier transforms are one of the workhorses of physics, both computational and otherwise. On a computer, we in generaly carry out *discrete Fourier transforms* or DFTs, where we sum (rather than integrate) over a discrete set of function points, and evaluate the DFT at a discrete set of $k$'s. Because of this, the DFTs can differ in some subtle ways from analytic Fourier transforms. 
+
 The DFT of a vector is a linear transformation which can be represented by a matrix. If the vector in question is \\(n\\) dimensional, and it's either real or complex, then the DFT matrix is a linear operator \\(\mathbb{C}^n\to\mathbb{C}^n\\) (or \\(\mathbb{R}^n\to\mathbb{C}^n\\)). It looks like this
 
 $$
@@ -112,9 +114,14 @@ In place FFT.
 ```
 
 #### Rust implementation (drop-down? how to conceal this to make article more concise?, look at raffi's website)
+
+*code snippet here*
+
+#### Assembly implementation
 *code snippet here*
 
 #### Algorithmi complexity
+O(n logn)
 
 *Theoretical time complexity*
 
@@ -131,6 +138,12 @@ In place FFT.
 [Link to paper (see page 15)](https://math.uchicago.edu/~may/REU2018/REUPapers/Dandavati.pdf)
 
 *(add: other implementations)*
+
+# History of the DFT
+
+In the early 1800s Joesph Fourier was galavanting around the French empire as a military official, then Napoleon put him in charge of Grenoble. While govonour, he conducted some mathematical investigations into heat flow on the side, which lead to a very neat insight that you can often greatly simplify your life greatly by performing a change of basis of your function space that came to be known as a Fourier transform. Thus Fourier Theory was bourn. 
+
+
 
 # Applications of the DFT
 The DFT is perhaps the most important and basic tool in signal processing. 
