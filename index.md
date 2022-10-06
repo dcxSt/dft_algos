@@ -44,7 +44,7 @@ Cooley Tukey Algorithms for the FFT are the most important class of fast fourier
 ### Radix-2 DIT 
 *Note: DIT stands for 'Decimation In Time'.*
 
-The Radix-2 algorithm is the simplest Cooley-Tukey algorithm. It assumes that the input vector (or 'signal') has exactly \\(2^r\\) dimensions (\\(r\\) is a positive integer). The algorithm shuffle's the vector's componants around, then splits the vector into two halves and reccursively applies it's self to each half of the vector, and then re-combines the output of each. 
+The Radix-2 algorithm is the simplest Cooley-Tukey algorithm. It assumes that the input vector (or 'signal') has exactly \\(2^r\\) dimensions (\\(r\\) is a positive integer). The algorithm shuffles the vector's componants around, then splits the vector into two halves and reccursively applies it's self to each half of the vector, and then re-combines the output of each. 
 
 Let \\(x\\) be a \\(n = 2^r\\) dimensional vector with real or complex entries
 
@@ -120,7 +120,7 @@ In place FFT.
 #### Assembly implementation
 *code snippet here*
 
-#### Algorithmi complexity
+#### Algorithmic complexity
 O(n logn)
 
 *Theoretical time complexity*
@@ -137,6 +137,8 @@ O(n logn)
 ## An Algorithm for All Finite Groups
 [Link to paper (see page 15)](https://math.uchicago.edu/~may/REU2018/REUPapers/Dandavati.pdf)
 
+Why would anyone ever want to do this?
+
 *(add: other implementations)*
 
 # History of the DFT
@@ -152,6 +154,10 @@ The DFT is perhaps the most important and basic tool in signal processing.
 # Other related transforms
 
 ## Wavelet Transforms
+
+
+***As you can see, this note is far from complete, if you'd like to contribute, contact me or submit a PR.***
+
 
 
 
