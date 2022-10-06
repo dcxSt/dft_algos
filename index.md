@@ -35,6 +35,22 @@ The matrix can be written more succinctly like so
 
 It is symmetric, orthogonal, and unitary (up to a factor of \\(1/\sqrt n\\)) i.e. it's inverse is just \\(1/n\\) times it's hermitian conjugate.
 
+# Properties of the DFT
+*steal stuff from jon's note for this section*
+## Shifted DFT
+
+## Flipped DFT
+
+## Aliasing
+
+## DFT of Real Functions
+
+## Sampling/Nyquist Theorem
+
+## Discrete Convolution theorem
+
+### Cross-correlations
+
 # Fast Fourier Transform FFT
 The FFT is a family of algorithms for computing the DFT of a vector. It is by far the most popular algorithm—so much so that many people use FFT and DFT interchangably.
 
