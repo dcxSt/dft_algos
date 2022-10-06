@@ -14,7 +14,7 @@ A **signal processing engineer**, i.e. an engineer in any of these fields: music
 In this repository we explore some algorithms for computing the discrete fourier transform of vectors. 
 
 # Discrete Fourier Transform (DFT)
-Fourier transforms are one of the workhorses of physics, both computational and otherwise. On a computer, we in generaly carry out *discrete Fourier transforms* or DFTs, where we sum (rather than integrate) over a discrete set of function points, and evaluate the DFT at a discrete set of $k$'s. Because of this, the DFTs can differ in some subtle ways from analytic Fourier transforms. 
+Fourier transforms are one of the workhorses of physics, both computational and otherwise. On a computer, we in generaly carry out *discrete Fourier transforms* or DFTs, where we sum (rather than integrate) over a discrete set of function points, and evaluate the DFT at a discrete set of \\(k\\)'s. Because of this, the DFTs can differ in some subtle ways from analytic Fourier transforms. 
 
 The DFT of a vector is a linear transformation which can be represented by a matrix. If the vector in question is \\(n\\) dimensional, and it's either real or complex, then the DFT matrix is a linear operator \\(\mathbb{C}^n\to\mathbb{C}^n\\) (or \\(\mathbb{R}^n\to\mathbb{C}^n\\)). It looks like this
 
