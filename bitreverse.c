@@ -16,7 +16,20 @@ int bitreverse(int number, int nbits) {
   return reversed;
 }
 
+// Function to reverse bits of a number
+unsigned int rb(unsigned int num , int r) 
+{
+  int reverse = 0;
+  for (int i=0;i<r;i++) {
+    reverse <<= 1;
+    reverse |= (num&1);
+    num >>= 1;
+  }
+  return reverse;
+}
+
 int main() {
+  // TESTS
   int n=1;
   printf("%i reversed %i\n",n,bitreverse(n,2));
   n=2;
@@ -25,6 +38,15 @@ int main() {
   printf("%i reversed %i\n",n,bitreverse(n,4));
   n=0;
   printf("%i reversed %i\n",n,bitreverse(n,4));
+  printf("---testing rb instead of bitreverse---\n");
+  n=1;
+  printf("%i reversed %i\n",n,rb(n,2));
+  n=2;
+  printf("%i reversed %i\n",n,rb(n,2));
+  n=5;
+  printf("%i reversed %i\n",n,rb(n,4));
+  n=0;
+  printf("%i reversed %i\n",n,rb(n,4));
   return 0;
 }
 
