@@ -49,7 +49,11 @@ It is symmetric, orthogonal, and unitary (up to a factor of \\(1/\sqrt n\\)) i.e
 
 ## Discrete Convolution theorem
 
-### Cross-correlations
+## Cross-correlations
+
+## 2-dimensional DFTs 
+
+## n-dimensional DFTs
 
 # Fast Fourier Transform FFT
 The FFT is a family of algorithms for computing the DFT of a vector. It is by far the most popular algorithm—so much so that many people use FFT and DFT interchangably.
@@ -85,7 +89,7 @@ DFT\big\{ x[0] , x[1] , ... , x[n-1] \big\}
 + e^{-k\cdot 2\pi i/n} DFT\big\{ x[1] , x[3] , ... , x[n-1] \big\}
 $$
 
-Now you can see that the right hand side is just the sum of two smaller fourier transforms. To solve those two, you reccursively apply the same trick until you get to two dimensional vectors where the Discrete Fourier Transform reduces to a trivial sum and difference.
+Now you can see that the right hand side is just the sum of two smaller fourier transforms times a phase. To solve those two, you reccursively apply the same trick until you get to two dimensional vectors where the Discrete Fourier Transform reduces to a trivial sum and difference.
 
 $$
 DFT\{x[0] , x[1]\} = \big[ x[0] + x[1] , x[0] - x[1] \big]
