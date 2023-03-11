@@ -159,7 +159,7 @@ $$
 \end{bmatrix}
 $$
 
-Where the sub matrices represented by $D_{4x4}$ are diagonal phase ramps with terms $e^0, e^{-2\pi i/4}, e^{-2 \pi i 2/4}, e^{-2\pi i 3/4}$. 
+Where the sub matrices represented by $D_{4x4}$ are diagonal phase ramps with terms \[e^0, e^{-2\pi i/4}, e^{-2 \pi i 2/4}, e^{-2\pi i 3/4}\]. 
 
 Putting these three matrices together, we have
 
@@ -187,9 +187,7 @@ F_{2x2}
 = \begin{bmatrix} 1_{1x1} & D_{1x1} \\ 1_{1x1} & -D_{1x1}\end{bmatrix}
 $$
 
-
-
-
+What
 
 #### Rust implementation 
 
