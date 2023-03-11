@@ -89,7 +89,7 @@ DFT\big\{ x[0] , x[1] , ... , x[n-1] \big\}
 + e^{-k\cdot 2\pi i/n} DFT\big\{ x[1] , x[3] , ... , x[n-1] \big\}
 $$
 
-Now you can see that the right hand side is just the sum of two smaller fourier transforms times a phase. To solve those two, you reccursively apply the same trick until you get to two dimensional vectors where the Discrete Fourier Transform reduces to a trivial sum and difference.
+Now you can see that the right hand side is just the sum of two smaller Fourier Transforms times a phase-ramp (formally known as *twiddle factors*). To solve those two, you reccursively apply the same trick until you get to two dimensional vectors where the Discrete Fourier Transform reduces to a trivial sum and difference.
 
 $$
 DFT\{x[0] , x[1]\} = \big[ x[0] + x[1] , x[0] - x[1] \big]
@@ -190,8 +190,11 @@ Lets write it out for an 8x8 DFT matrix
 $$
 F_{8x8}
 = \begin{bmatrix} 1_{4x4} & D_{4x4} \\ 1_{4x4} & -D_{4x4}\end{bmatrix}
+\cdot
 \begin{bmatrix} 1_{2x2} & D_{2x2} & 0_{2x2} & 0_{2x2}\\ 1_{2x2} & -D_{2x2} & 0_{2x2} 0_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & D_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & -D_{2x2} \end{bmatrix}
-\begin{bmatrix}
+$$
+$$
+\,\,\,\cdot\begin{bmatrix}
   1 & 1  & 0 & 0 & 0 & 0 & 0 & 0 \\
   1 & -1 & 0 & 0 & 0 & 0 & 0 & 0 \\
   0 & 0 & 1 & 1  & 0 & 0 & 0 & 0 \\
