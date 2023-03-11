@@ -1,0 +1,10 @@
+*.out
+*.c
+*.o
+.jekyll-cache/
+.ipynb_checkpoints/
+.rs_fft.py.swp/
+Gemfile.lock
+_site/
+*swp
+rs_fft.py
