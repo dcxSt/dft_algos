@@ -125,7 +125,7 @@ def fft(arr):
 
 As you can see, the python implementation is very short and easy to read because python does most of the heavy lifting for us. In order to take a deeper dive and implement it at a lower level, it will be helpful to understand the Cooley Tukey algorithm as a matrix decomposition. 
 
-Using the formula that expresses a DFT in terms of two DFT's of half the size that we derived just above, we will re-cast one DFT matrix as the product of three matrices. We will use $n=8$ as a small but non-trivial example. To decompose our matrix, we notice that the first operation is to separate even indexed elements from the odd ones, so our right-most matrix will do just that:
+Using the formula that expresses a DFT in terms of two DFT's of half the size that we derived just above, we will re-cast one DFT matrix as the product of three matrices. We will use \\(n=8\\) as a small but non-trivial example. To decompose our matrix, we notice that the first operation is to separate even indexed elements from the odd ones, so our right-most matrix will do just that:
 
 $$
 S_8 := 
@@ -159,14 +159,12 @@ $$
 \end{bmatrix}
 $$
 
-Where the sub matrices represented by $D_{4x4}$ are diagonal phase ramps with terms \[e^0, e^{-2\pi i/4}, e^{-2 \pi i 2/4}, e^{-2\pi i 3/4}\]. 
+Where the sub matrices represented by \\(D_{4x4}\\) are diagonal phase ramps with terms \\(e^0, e^{-2\pi i/4}, e^{-2 \pi i 2/4}, e^{-2\pi i 3/4}\\). 
 
 Putting these three matrices together, we have
 
 $$
-\begin{bmatrix}
   F_{8x8}
-\end{bmatrix}
 =
 \begin{bmatrix}
   1_{4x4} & D_{4x4} \\
@@ -179,7 +177,7 @@ $$
 S_8
 $$
 
-We can now apply the same decomposition reccursively to our middle fourier sub-matrices until we hit $F_{2x2}$ which is conveniantly equal to the 1x1 version of the left-most-matrices
+We can now apply the same decomposition reccursively to our middle fourier sub-matrices until we hit \\(F_{2x2}\\) which is conveniantly equal to the 1x1 version of the left-most-matrices
 
 $$
 F_{2x2} 
@@ -187,7 +185,24 @@ F_{2x2}
 = \begin{bmatrix} 1_{1x1} & D_{1x1} \\ 1_{1x1} & -D_{1x1}\end{bmatrix}
 $$
 
-What
+Lets write it out for an 8x8 DFT matrix
+
+$$
+F_{8x8}
+= \begin{bmatrix} 1_{4x4} & D_{4x4} \\ 1_{4x4} & -D_{4x4}\end{bmatrix}
+\begin{bmatrix} 1_{2x2} & D_{2x2} & 0_{2x2} & 0_{2x2}\\ 1_{2x2} & -D_{2x2} & 0_{2x2} 0_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & D_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & -D_{2x2} \end{bmatrix}
+\begin{bmatrix}
+  1 & 1  & 0 & 0 & 0 & 0 & 0 & 0 \\
+  1 & -1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+  0 & 0 & 1 & 1  & 0 & 0 & 0 & 0 \\
+  0 & 0 & 1 & -1 & 0 & 0 & 0 & 0 \\ 
+  0 & 0 & 0 & 0 & 1 & 1  & 0 & 0 \\ 
+  0 & 0 & 0 & 0 & 1 & -1 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 0 & 0 & 1 & 1  \\
+  0 & 0 & 0 & 0 & 0 & 0 & 1 & -1
+\end{bmatrix}
+S_2 S_4 S_8 
+$$
 
 #### Rust implementation 
 
