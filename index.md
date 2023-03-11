@@ -5,11 +5,11 @@ layout: default
 # Fourier Transforms (FT)
 Broadly, the fourier transform is a way of transforming some vectors or functions into other vectors or functions. The fourier transform has a broad range of applications and is central in many mathematical fields, so depending on who you ask, the fourier transform is likely to mean different things.
 
-If you ask a **mathematician** what a fourier transform is they are likely to reply with some gibberish like *"the fourier transform is a **linear operator** that acts on **Hilbert spaces** and **groups** that satisfies a variety of nice properties (such as invertibility) under various conditions."* 
+If you ask a **mathematician** what a fourier transform is they are likely to reply with some gibberish that sounds like *"the fourier transform is a **linear operator** that acts on **Hilbert spaces** and **groups** that satisfies a variety of nice properties (such as invertibility) under various conditions."* 
 
-A **physicist** will say *"the fourier transfrom lies at the **core of many fundamental fields** in physics such as quantum mechanics and fluid dynamics. What's more, the fourier transform is a essential to the math behind statistical mechanics, which is the most important and fundamental field in all of physics."* 
+A **physicist** will say *"the fourier transfrom lies at the **core of many fundamental fields** in physics such as quantum mechanics and fluid dynamics. What's more, the fourier transform is a essential to the math behind statistical mechanics, and its use is ubiquitous in computational modelling of physical systems."* 
 
-A **signal processing engineer**, i.e. an engineer in any of these fields: music; computer vision; stock market prediction; some medical fields such as EEG/EMG/ECG analysis; power grid/energy distribution; and more—will tell you that *the discrete fourier transform is **the most fundamental tool** used in digital sigial processing.*
+A **signal processing engineer**, i.e. an engineer in any of these fields: music; computer vision; stock market prediction; some medical fields such as EEG/EMG/ECG analysis; power grid/energy distribution; and more—will tell you that *the discrete fourier transform is one of **the most fundamental tools** used in digital sigial processing.*
 
 In this repository we explore some algorithms for computing the discrete fourier transform of vectors. 
 
@@ -121,19 +121,77 @@ def fft(arr):
     return np.concatenate([even + odd , even - odd])
 ```
 
-A for-loop implementation
-(what advantages does this offer over recursive? is it faster?, more readable?)
+### Radix 2 DIT in the Language of Linear Algebra
 
-#### C implementation
+As you can see, the python implementation is very short and easy to read because python does most of the heavy lifting for us. In order to take a deeper dive and implement it at a lower level, it will be helpful to understand the Cooley Tukey algorithm as a matrix decomposition. 
 
-In place FFT. 
+Using the formula that expresses a DFT in terms of two DFT's of half the size that we derived just above, we will re-cast one DFT matrix as the product of three matrices. We will use $n=8$ as a small but non-trivial example. To decompose our matrix, we notice that the first operation is to separate even indexed elements from the odd ones, so our right-most matrix will do just that:
 
-```c
+$$
+S_8 := 
+\begin{bmatrix}
+  1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+  0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\ 
+  0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+  0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+Then, we have two, smaller DFT matrices, each acting on its half of the indices: 
+
+$$
+\begin{bmatrix}
+  F_{4x4} & 0_{4x4} \\
+  0_{4x4} & F_{4x4}
+\end{bmatrix}
+$$
+
+And then we multiply the second term in our equations by phase ramps, adding the two terms:
+
+$$
+\begin{bmatrix}
+  1_{4x4} & D_{4x4} \\
+  1_{4x4} & -D_{4x4}
+\end{bmatrix}
+$$
+
+Where the sub matrices represented by $D_{4x4}$ are diagonal phase ramps with terms $e^0, e^{-2\pi i/4}, e^{-2 \pi i 2/4}, e^{-2\pi i 3/4}$. 
+
+Putting these three matrices together, we have
+
+$$
+\begin{bmatrix}
+  F_{8x8}
+\end{bmatrix}
+=
+\begin{bmatrix}
+  1_{4x4} & D_{4x4} \\
+  1_{4x4} & -D_{4x4}
+\end{bmatrix}
+\begin{bmatrix}
+  F_{4x4} & 0_{4x4} \\
+  0_{4x4} & F_{4x4}
+\end{bmatrix}
+S_8
+$$
+
+We can now apply the same decomposition reccursively to our middle fourier sub-matrices until we hit $F_{2x2}$ which is conveniantly equal to the 1x1 version of the left-most-matrices
+
+$$
+F_{2x2} 
+= \begin{bmatrix} 1 & 1 \\ 1 & -1\end{bmatrix}
+= \begin{bmatrix} 1_{1x1} & D_{1x1} \\ 1_{1x1} & -D_{1x1}\end{bmatrix}
+$$
 
 
-```
 
-#### Rust implementation (drop-down? how to conceal this to make article more concise?, look at raffi's website)
+
+
+#### Rust implementation 
 
 *code snippet here*
 
