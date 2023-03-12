@@ -15,6 +15,9 @@ Building the FFT
 - [ ] modify SINE function so that it sores correct number of bits
 
 
+*Reminder:* if you'd like to display trace, debug or info logging statements, run `RUST_LOG=trace cargo run`
+
+
 ## Debugging 
 
 Output of `cargo run`
