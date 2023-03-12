@@ -207,9 +207,79 @@ $$
 S_2 S_4 S_8 
 $$
 
+This is quite a mouthful, but it's a lot faster to evaluate on our computer than our previous version. As you can see, for \\(N\\), it will only require \\(N \log_2 (N)\\) multiplications to evaluate. 
+
+To simplify our lives even further, we notice a nifty little fact about these three permutation matrices \\(S_8, S_4\\) and \\(S_2\\) that re-order our data according to feed into the smaller DFTs: The cumulative effect of \\(S_2S_4\cdots S_N\\) on our data is to sort it according to the binary representation of it's index re-interpreted as a little endian binary number, i.e. we just reverse the order of the bits of the index to get the new index. And Voila, now we can use this knowledge to implement the FFT in a lower level language. 
+
 #### Rust implementation 
 
-*code snippet here*
+To demonstate the practicality of this linear algebra view of things, we use our knowledge learned to implement the FFT in Rust. We'd like to implement at 8-point DFT using the Cooley-Tukey algorithm. Our input array will be a complex array of length 8 and we will call if `flip`. We will additionally supply another complex array called `flop` to hold data in intermediate stages. 
+
+```rust
+// Three stage DFT Radix-2 DIT
+fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
+```
+
+The first task is to re-order our array. We will do this with some bit-twiddling
+
+```rust
+// Decimation In Time re-ordering, flip-> flop
+for idx in 0usize..8 {
+  // Initiate the Bit-Flipped-Index
+  let mut bfi: usize = 0;
+  // Only three bits required to describe index
+  for pos in 0u8..=2 {
+    // If there's a bit at pos in idx, put it in 2-pos in bfi
+    bfi |= ((idx & (1 << pos)) >> pos) << (2-pos);
+  }
+  // Copy the number at idx into bit-flipped-index
+  flop[bfi] = flip[idx];
+  println!("idx={}, bfi={}", idx, bfi);
+}
+```
+
+This outputs 
+
+```
+idx=0, bfi=0
+idx=1, bfi=4
+idx=2, bfi=2
+idx=3, bfi=6
+idx=4, bfi=1
+idx=5, bfi=5
+idx=6, bfi=3
+idx=7, bfi=7
+```
+
+Now, we can dive in to the main loop. We would like to iterate through the matrices we derived above, from right to left as that is how they are evaluated. To iterate through them we index them and call this index the `stage`. The size of the non-trivial sub-matrix blogs of a particular matrix we call the `size` of that stage, this is equal to two to the power of the stage, or equivalently `size = 1 << stage;`. The number of chunks at a stage we will call `numb`, and it is defined such that `numb * size == 8`. We also make use of an already prepared a lookup table for the values of a SINE wave with 2048 entries for a full \\(2\pi\\) rotation. 
+
+
+```rust
+let mut size: usize; // Size of the current butterfly stage
+let mut numb: usize; // Number of chunks of size 'size'
+for stage in 1u32..=3 {
+  // Copy flop back into flip
+  copy_ab(*flop, flip);
+  // set the 'size' and the 'numb' of this stage
+  size = 1 << stage; 
+  numb = 1 << (3 - stage);
+  for chunk in 0usize..numb {
+    for k in 0usize..(size/2) {
+      // The first term in the multiplication
+      let d1 = flip[chunk * size + k];
+      // Compute complex twiddle factor from Sine-wave lookup table
+      let twiddle = Complex::new(SINE[2048/4 + numb * k * 2048 / 8], SINE[numb * k * 2048 / 8]);
+      let mut d2 = flip[chunk * size + size/2 + k] * twiddle;
+      d2.bitshift_right(15); // normalize, twiddle factor too big because stored as int
+      flop[chunk * size + k] = d1 + d2;
+      flop[chunk * size + k + size/2] = d1 - d2;
+    }
+  }
+}
+```
+
+And we're done! (The full code for this implementation can be found in the [repository](https://github.com/dcxSt/dft_algos/tree/main/fftrs) that comes with this note.)
+
 
 #### Assembly implementation
 *code snippet here*
