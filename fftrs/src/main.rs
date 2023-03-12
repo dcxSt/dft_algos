@@ -122,10 +122,13 @@ fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
         numb = 1 << (3 - stage);
         for chunk in 0..numb {
             for k in 0..(size/2) {
-                let d1 = flip[chunk * size + k];
+                let mut d1 = flip[chunk * size + k];
                 let twiddle = Complex::new(SINE[2048/4 + numb * k * 2048 / 8], SINE[numb * k * 2048 / 8]);
                 let mut d2 = flip[chunk * size + size/2 + k] * twiddle;
                 d2.bitshift_right(15); // normalize, twiddle factor too big
+                // bitshift right by 1 prevent Butterfly overflow
+                d1.bitshift_right(1);
+                d2.bitshift_right(1);
                 flop[chunk * size + k] = d1 + d2;
                 flop[chunk * size + k + size/2] = d1 - d2;
             }
@@ -158,10 +161,13 @@ fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
         numb = 1 << (11 - stage); 
         for chunk in 0usize..numb {
             for k in 0usize..(size/2) {
-                let d1 = flip[chunk * size + k];
+                let mut d1 = flip[chunk * size + k];
                 let twiddle = Complex::new(SINE[2048/4 + numb * k], SINE[numb * k]);
                 let mut d2 = flip[chunk * size + size/2 + k] * twiddle;
                 d2.bitshift_right(15); // normalize, twiddle factor is order 2^15
+                // bitshift right by 1 prevent Butterfly overflow
+                d1.bitshift_right(1);
+                d2.bitshift_right(1);
                 flop[chunk * size + k] = d1 + d2;
                 flop[chunk * size + k + size/2] = d1 - d2; 
             }
@@ -210,10 +216,13 @@ fn fft(flip: &mut [Complex], flop: &mut [Complex]) {
         numb = 1 << (n - stage);
         for chunk in 0..numb {
             for k in 0..(size/2) {
-                let d1 = flip[chunk * size + k];
+                let mut d1 = flip[chunk * size + k];
                 let twiddle = Complex::new(SINE[2048/4 + numb * k * (2048 >> n)], SINE[numb * k * (2048 >> n)]);
                 let mut d2 = flip[chunk * size + size/2 + k] * twiddle;
                 d2.bitshift_right(15); // normalize, twiddle factor is order 2^15
+                // bitshift right by 1 prevent Butterfly overflow
+                d1.bitshift_right(1);
+                d2.bitshift_right(1);
                 flop[chunk * size + k] = d1 + d2;
                 flop[chunk * size + k + size/2] = d1 - d2;
             }
@@ -225,14 +234,21 @@ fn fft(flip: &mut [Complex], flop: &mut [Complex]) {
 
 fn main() {
     env_logger::init();
-    // Initiate array of complex numbers
+    info!("Initiating array of 8 complex numbers");
     let mut flip: [Complex; 8] = [Complex::new(1000, 0); 8]; // input
     let mut flop: [Complex; 8] = [Complex::new(0, 0); 8]; // output
-    // Perform the FFT
+    info!("Performing FFT");
     fft(&mut flip, &mut flop);
-    println!("\nOut fft:\n");
+    display_array(&flop); // Display result
+
+    info!("Initiating array of 2048 complex numbers");
+    let mut flip: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
+    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
+    info!("Performing FFT");
+    fft(&mut flip, &mut flop);
     display_array(&flop); // Display result
 }
+
 
 #[cfg(test)]
 mod test {
@@ -259,14 +275,13 @@ mod test {
             assert!(flop[i]==flop8[i]);
         }
 
-        
         //// Compare output with fft2048, should be exact same
         // Perform 2048 point FFT with fft2048()
-        let mut flip2048: [Complex; 2048] = [Complex::new(1, 0); 2048];
+        let mut flip2048: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
         let mut flop2048: [Complex; 2048] = [Complex::new(0, 0); 2048];
         fft2048(&mut flip2048, &mut flop2048);
         // Perform 2048 point FFT with fft()
-        let mut flip: [Complex; 2048] = [Complex::new(1, 0); 2048];
+        let mut flip: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
         let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
         fft(&mut flip, &mut flop);
         for i in 0..2048 {
