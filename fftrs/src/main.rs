@@ -29,7 +29,12 @@ impl Complex {
 
 impl std::fmt::Display for Complex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} + i {}", self.re, self.im)
+        if self.im >= 0 {
+            write!(f, "{}+{}i", self.re, self.im)
+        }
+        else {
+            write!(f, "{}{}i", self.re, self.im)
+        }
     }
 }
 
@@ -56,16 +61,18 @@ impl std::ops::Mul for Complex {
 }
 
 // copy a complex array from a into b
-fn copy_ab(a: [Complex; 8], b: &mut [Complex; 8]) {
-    for idx in 0usize..8 {
-         b[idx] = a[idx];
+fn copy_ab(a: &[Complex], b: &mut [Complex]) {
+    let len = a.len();
+    assert!(len==b.len()); // check they are same size
+    for idx in 0..len {
+        b[idx] = a[idx];
     }
 }
 
-fn display_array(arr: [Complex; 8]) {
+fn display_array(arr: &[Complex]) {
     print!("[");
-    for i in 0..8 {
-        print!("{}+i{}, ", arr[i].re, arr[i].im);
+    for c in arr.iter() {
+        print!("{}, ", c)
     }
     println!("]");
 }
@@ -84,13 +91,13 @@ fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
         flop[bfi] = flip[idx];
     }
     println!("DEBUG: bit-switch complete, result:");
-    display_array(*flop); 
+    display_array(&*flop); 
     // For each stage, compute the ffts
     let mut size: usize; // size of the current butterfly stage
     let mut numb: usize; // number of chunks of size 'size', numb*size=8
     for stage in 1u32..=3 {
         // Copy flop back into flip
-        copy_ab(*flop, flip);
+        copy_ab(&*flop, flip);
         println!("----------------------");
         println!("\nDEBUG: stage {}", stage);
         size = 1 << stage; // 2usize.pow(stage);
@@ -105,10 +112,44 @@ fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
                 flop[chunk * size + k + size/2] = d1 - d2;
             }
             println!("\nDEBUG: chunk={}", chunk);
-            display_array(*flop);
+            display_array(&*flop);
         }
     }
     println!("DEBUG: #2");
+}
+
+fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
+    // Decimation in time re-ordering, flip -> flop
+    for idx in 0usize..2048 {
+        // Bit flipped idx
+        let mut bfi: usize = 0;
+        for pos in 0..=10 {
+            bfi |= ((idx & (1 << pos)) >> pos) << (10-pos);
+        }
+        println!("idx={}, bfi={}", idx, bfi);
+        // Copy the number at idx into bit-flipped-index
+        flop[bfi] = flip[idx];
+    }
+    // For each stage, compute the twiddle factors
+    let mut size: usize; // size of the current butterfly stage
+    let mut numb: usize; // number of chunks of size 'size', numb*size=8
+    for stage in 1u32..=11 {
+        // Copy flop back into flip
+        copy_ab(&*flop, flip);
+        println!("\nDEBUG: Butterfly stage #{}", stage);
+        size = 1 << stage;
+        numb = 1 << (11 - stage); 
+        for chunk in 0usize..numb {
+            for k in 0usize..(size/2) {
+                let d1 = flip[chunk * size + k];
+                let twiddle = Complex::new(SINE[2048/4 + numb * k], SINE[numb * k]);
+                let mut d2 = flip[chunk * size + size/2 + k] * twiddle;
+                d2.bitshift_right(15); // normalize, twiddle factor is order 2^15
+                flop[chunk * size + k] = d1 + d2;
+                flop[chunk * size + k + size/2] = d1 - d2; 
+            }
+        }
+    }
 }
 
 
@@ -121,15 +162,16 @@ fn main() {
     println!("before fft8: {}",flop[0]);
     // Initiate Twiddle factors
     fft8(&mut flip, &mut flop);
-    println!("After fft8: {}",flop[0]);
-    let seven: u16 = 0b0000_0000_0000_0111;
-    println!("7u16 in bits: {:016b}", seven);
-    let one:i8 = 1;
-    let n_one:i8 =-1;
-    println!("one {:08b}",one);
-    println!("n_one {:08b}",n_one);
     println!("\nOut:\n");
-    display_array(flop);
+    display_array(&flop);
+
+    // TEST 2048
+    let mut flip: [Complex; 2048] = [Complex::new(1, 0); 2048];
+    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
+    println!("before fft2048: ");
+    fft2048(&mut flip, &mut flop);
+    println!("after fft2048: ");
+    display_array(&flop);
 }
 
 #[cfg(test)]
@@ -138,7 +180,7 @@ mod test {
 
     #[test]
     fn test_complex() {
-        let _c = Complex::new(3, 1, 4);
+        let _c = Complex::new(3, 1);
     }
 }
 
