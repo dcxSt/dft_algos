@@ -191,7 +191,7 @@ $$
 F_{8x8}
 = \begin{bmatrix} 1_{4x4} & D_{4x4} \\ 1_{4x4} & -D_{4x4}\end{bmatrix}
 \cdot
-\begin{bmatrix} 1_{2x2} & D_{2x2} & 0_{2x2} & 0_{2x2}\\ 1_{2x2} & -D_{2x2} & 0_{2x2} 0_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & D_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & -D_{2x2} \end{bmatrix}
+\begin{bmatrix} 1_{2x2} & D_{2x2} & 0_{2x2} & 0_{2x2}\\ 1_{2x2} & -D_{2x2} & 0_{2x2} & 0_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & D_{2x2} \\ 0_{2x2} & 0_{2x2} & 1_{2x2} & -D_{2x2} \end{bmatrix}
 $$
 $$
 \,\,\,\cdot\begin{bmatrix}
@@ -251,7 +251,7 @@ idx=6, bfi=3
 idx=7, bfi=7
 ```
 
-Now, we can dive in to the main loop. We would like to iterate through the matrices we derived above, from right to left as that is how they are evaluated. To iterate through them we index them and call this index the `stage`. The size of the non-trivial sub-matrix blogs of a particular matrix we call the `size` of that stage, this is equal to two to the power of the stage, or equivalently `size = 1 << stage;`. The number of chunks at a stage we will call `numb`, and it is defined such that `numb * size == 8`. We also make use of an already prepared a lookup table for the values of a SINE wave with 2048 entries for a full \\(2\pi\\) rotation. 
+Now, we can dive in to the main loop. We would like to iterate through the matrices we derived above, from right to left as that is how they are evaluated. To iterate through them we index them and call this index the `stage`. The size of the non-trivial sub-matrix blogs of a particular matrix we call the `size` of that stage, this is equal to two to the power of the stage, or equivalently `size = 1 << stage;`. The number of chunks at a stage we will call `numb`, and it is defined such that `numb * size == 8`. We also make use of a lookup table for the values of a Sine wave with 2048 entries for a full \\(2\pi\\) rotation. 
 
 
 ```rust
