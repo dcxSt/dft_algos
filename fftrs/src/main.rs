@@ -191,15 +191,18 @@ impl Complex {
         // and imaginary bits.
         // nbits_keep/2 - 1, minus one is to account for the sign bit
         // The minus one after the bitshift is to turn 1000 into 0111
-        let mask = (1 << (nbits_keep / 2 - 1)) - 1;
-        let mut re: i64 = self.re & mask;
-        let mut im: i64 = self.im & mask;
-        if self.re < 0 {
-            re = self.re & (-mask)
-        };
-        if self.im < 0 {
-            im = self.im & (-mask)
-        };
+        let mut re: i64 = self.re;
+        let mut im: i64 = self.im;
+        if self.re >= 1 << (nbits_keep / 2 - 1) {
+            re = (1 << (nbits_keep / 2 - 1)) - 1;
+        } else if self.re <= -1 << (nbits_keep / 2 - 1) {
+            re = (-1 << (nbits_keep / 2 - 1)) + 1;
+        }
+        if self.im >= 1 << (nbits_keep / 2 - 1) {
+            im = (1 << (nbits_keep / 2 - 1)) - 1
+        } else if self.im <= -1 << (nbits_keep / 2 - 1) {
+            im = (-1 << (nbits_keep / 2 - 1)) + 1;
+        }
         Self::new(re, im)
     }
 }
@@ -207,9 +210,9 @@ impl Complex {
 impl std::fmt::Display for Complex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.im >= 0 {
-            write!(f, "{}+{}i", self.re, self.im)
+            write!(f, "{}+{}j", self.re, self.im)
         } else {
-            write!(f, "{}{}i", self.re, self.im)
+            write!(f, "{}{}j", self.re, self.im)
         }
     }
 }
@@ -260,11 +263,9 @@ fn trace_array(arr: &[Complex]) {
 }
 
 fn display_array(arr: &[Complex]) {
-    print!("[");
     for c in arr.iter() {
-        print!("{}, ", c);
+        println!("({})", c);
     }
-    println!("]");
 }
 
 // Simple three-stage DFT Radix-2 DIT
@@ -354,6 +355,7 @@ fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
 }
 
 // FFT for any power of two up to and including 2048
+#[allow(dead_code)]
 fn fft(flip: &mut [Complex], flop: &mut [Complex]) {
     // Make sure length of arrays are a power of two
     let len = flip.len();
@@ -454,7 +456,7 @@ fn fft_quantized(
     for i in 0..len {
         flop[i] = flip[i].get_clipped_msb(ndatabits);
         if flop[i] != flip[i] {
-            trace!("{} got clipped to {}", flop[i], flip[i]);
+            trace!("{} got clipped to {}", flip[i], flop[i]);
         }
     }
     // copy flop back into flip
@@ -467,7 +469,6 @@ fn fft_quantized(
         for pos in 0..n {
             bfi |= ((idx & (1 << pos)) >> pos) << (n - 1 - pos);
         }
-        trace!("idx={}, bfi={}", idx, bfi);
         // copy the number at index idx into Bit-Flipped-Index (bfi)
         flop[bfi] = flip[idx];
     }
@@ -504,24 +505,35 @@ fn fft_quantized(
 
 fn main() {
     env_logger::init();
-
-    //info!("Initiating array of 8 complex numbers");
-    //let mut flip: [Complex; 8] = [Complex::new(1000, 0); 8]; // input
-    //let mut flop: [Complex; 8] = [Complex::new(0, 0); 8]; // output
-    //info!("Performing FFT");
-    //fft(&mut flip, &mut flop);
-    //display_array(&flop); // Display result
-
-    //info!("Initiating array of 2048 complex numbers");
-    //let mut flip: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
-    //let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
-    //info!("Performing FFT");
-    //fft(&mut flip, &mut flop);
-    //display_array(&flop); // Display result
-    
-    //let 
-    //info!("Testing FFT of DC input, {} bits for the twiddles, {} bits for numbers");
+    let nsinebits = 16;
+    let ndatabits = 18;
+    info!(
+        "Testing FFT of DC input, {} bits for twiddles, {} bits for SINE coeffs",
+        ndatabits, nsinebits
+    );
+    println!("len_arr = {}", 2048);
+    println!("ndatabits = {}", ndatabits);
+    println!("nsinebits = {}", nsinebits);
+    println!("2048 point FFT with DC band input at 100");
+    let mut flip: [Complex; 2048] = [Complex::new(200, 0); 2048]; // input
+    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048]; // output
+    fft_quantized(&mut flip, &mut flop, nsinebits, ndatabits);
+    display_array(&flop);
 }
+
+//info!("Initiating array of 8 complex numbers");
+//let mut flip: [Complex; 8] = [Complex::new(1000, 0); 8]; // input
+//let mut flop: [Complex; 8] = [Complex::new(0, 0); 8]; // output
+//info!("Performing FFT");
+//fft(&mut flip, &mut flop);
+//display_array(&flop); // Display result
+
+//info!("Initiating array of 2048 complex numbers");
+//let mut flip: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
+//let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
+//info!("Performing FFT");
+//fft(&mut flip, &mut flop);
+//display_array(&flop); // Display result
 
 #[cfg(test)]
 mod test {
@@ -554,7 +566,7 @@ mod test {
         let mut flop2048: [Complex; 2048] = [Complex::new(0, 0); 2048];
         fft2048(&mut flip2048, &mut flop2048);
         // Perform 2048 point FFT with fft()
-        let mut flip: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
+        let mut flip: [Complex; 2048] = [Complex::new(100, 0); 2048];
         let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
         fft(&mut flip, &mut flop);
         for i in 0..2048 {
