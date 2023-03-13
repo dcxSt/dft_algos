@@ -2,7 +2,7 @@ extern crate env_logger;
 use log::{debug, info, trace};
 
 // SINE ranges between 2^15 - 1 and - (2^15 -1) or 1<<15
-static SINE: [i32; 2048] = [
+static SINE: [i64; 2048] = [
     0, 100, 201, 301, 402, 502, 603, 703, 804, 904, 1005, 1105, 1206, 1306, 1406, 1507, 1607, 1708,
     1808, 1908, 2009, 2109, 2209, 2310, 2410, 2510, 2610, 2711, 2811, 2911, 3011, 3111, 3211, 3311,
     3411, 3511, 3611, 3711, 3811, 3911, 4011, 4110, 4210, 4310, 4409, 4509, 4608, 4708, 4807, 4907,
@@ -168,13 +168,13 @@ static SINE: [i32; 2048] = [
 // Simple complex data type, (simpler than num::complex::Complex)
 #[derive(Copy, Clone)]
 pub struct Complex {
-    pub re: i32,
-    pub im: i32,
+    pub re: i64,
+    pub im: i64,
 }
 
 impl Complex {
     // Create a new complex number
-    pub fn new(re: i32, im: i32) -> Complex {
+    pub fn new(re: i64, im: i64) -> Complex {
         // Initiate and return complex number
         Complex { re: re, im: im }
     }
@@ -191,9 +191,9 @@ impl Complex {
         // and imaginary bits.
         // nbits_keep/2 - 1, minus one is to account for the sign bit
         // The minus one after the bitshift is to turn 1000 into 0111
-        let mask = (1 << nbits_keep / 2 - 1) - 1;
-        let mut re: i32 = self.re & mask;
-        let mut im: i32 = self.im & mask;
+        let mask = (1 << (nbits_keep / 2 - 1)) - 1;
+        let mut re: i64 = self.re & mask;
+        let mut im: i64 = self.im & mask;
         if self.re < 0 {
             re = self.re & (-mask)
         };
@@ -424,10 +424,8 @@ fn fft_quantized(
     flop: &mut [Complex], // output
     nsinebits: usize,     // number of bits used to store sine coeffs
     ndatabits: usize,     // number of bits used to store our data
-    ntotalbits: usize,    // sinebits + databite, total num of bits used
 ) {
-    trace!("Commencing basic tests and checks");
-    assert_eq!(nsinebits + ndatabits, ntotalbits);
+    trace!("Starting basic tests and checks");
     // Our SINE lookup table is in i16, values in -2^15 to 2^15
     assert!(nsinebits <= 16);
     // ndatabits should be even, half for imaginary half for real
@@ -506,12 +504,13 @@ fn fft_quantized(
 
 fn main() {
     env_logger::init();
-    info!("Initiating array of 8 complex numbers");
-    let mut flip: [Complex; 8] = [Complex::new(1000, 0); 8]; // input
-    let mut flop: [Complex; 8] = [Complex::new(0, 0); 8]; // output
-    info!("Performing FFT");
-    fft(&mut flip, &mut flop);
-    display_array(&flop); // Display result
+
+    //info!("Initiating array of 8 complex numbers");
+    //let mut flip: [Complex; 8] = [Complex::new(1000, 0); 8]; // input
+    //let mut flop: [Complex; 8] = [Complex::new(0, 0); 8]; // output
+    //info!("Performing FFT");
+    //fft(&mut flip, &mut flop);
+    //display_array(&flop); // Display result
 
     //info!("Initiating array of 2048 complex numbers");
     //let mut flip: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
@@ -519,6 +518,9 @@ fn main() {
     //info!("Performing FFT");
     //fft(&mut flip, &mut flop);
     //display_array(&flop); // Display result
+    
+    //let 
+    //info!("Testing FFT of DC input, {} bits for the twiddles, {} bits for numbers");
 }
 
 #[cfg(test)]
@@ -566,7 +568,7 @@ mod test {
         // Perform an fft_quantized, see if it breaks
         let mut flip: [Complex; 8] = [Complex::new(100, 0); 8];
         let mut flop: [Complex; 8] = [Complex::new(100, 0); 8];
-        fft_quantized(&mut flip, &mut flop, 16, 16, 32);
+        fft_quantized(&mut flip, &mut flop, 16, 16);
         // Compare output with other integer FFT
         let mut flip2: [Complex; 8] = [Complex::new(100, 0); 8];
         let mut flop2: [Complex; 8] = [Complex::new(100, 0); 8];
