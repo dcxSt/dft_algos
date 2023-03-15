@@ -1,22 +1,52 @@
-todo
+# How to use
+
+This program performs a 2048 point integer FFT on 32 bit integer data in numpy serialized arrays, files with the `.npy` extention. If you'd like to add flexibility, feel free to play with the code, I did my best to make it easy to adapt. 
+
+Clone this repository
+
+```
+git clone https://github.com/dcxSt/dft_algos.git
+```
+
+Change directory 
+
+```
+cd dft_algos/fftrs
+```
+
+Build the binaries with cargo (install instructions for cargo [here](https://doc.rust-lang.org/cargo/getting-started/installation.html))
+
+```
+cargo build --release
+```
+
+Copy the binary program that you just compiled into, wherever you want it to be (perhaps the same place as your simulated data)
+
+```
+cp target/release/fftrs /any/directory/you/want/
+```
+
+Go into the directory you just copied the binary into. Run the program, supplying three arguments
+
+```
+./fftrs <name_of_npy_file.npy> <number_of_bits_for_data> <number_of_sine_bits>
+```
+
+The number of sine bits can be at most 16, and the number of data bits must be even and at most 18. 
+
+For instance
+
+```
+./fftrs dc100.npy 18 16
+```
+
+It will output the DFT info files `<input_file_basename>_out_real.npy` and `<output_file_basename>_out_imag.npy`. Have fun. 
 
 
-- [x] Figure out how if there is a native complex integer datatype in rust
 
+## Dev stuff
 
-Building the FFT
-- [x] Make your own complex data type
-- [x] Initiate array of 8 complex numbers (just a boring one)
-- [x] Implement the inplace FFT algorithm on them, RADIX 2 DIT CT with an array of length 8 )(i.e. three stages)
-  - [x] Init second array of 8 complex numbers for flip-flopping purposes
-  - [x] Static SINE function to use in FFT
-  
-- [ ] modify complex struct so that it stores a maximum amount of bits
-- [ ] modify SINE function so that it sores correct number of bits
-
-
-*Reminder:* if you'd like to display trace, debug or info logging statements, run `RUST_LOG=trace cargo run`
-
+*Remark:* if you'd like to display trace, debug or info logging statements, run `RUST_LOG=trace cargo run`
 
 ## Debugging 
 
