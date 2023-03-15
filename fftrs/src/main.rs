@@ -1,5 +1,11 @@
 extern crate env_logger;
+extern crate npyz;
+
 use log::{debug, info, trace};
+use npyz::WriterBuilder;
+use std::env; // retrieve arguments
+use std::io;
+use std::fs::File;
 
 // SINE ranges between 2^15 - 1 and - (2^15 -1) or 1<<15
 static SINE: [i64; 2048] = [
@@ -268,6 +274,12 @@ fn display_array(arr: &[Complex]) {
     }
 }
 
+fn display_array_head(arr: &[Complex], n: usize) {
+    for i in 0..n {
+        info!("({})", arr[i]);
+    }
+}
+
 // Simple three-stage DFT Radix-2 DIT
 #[allow(dead_code)]
 fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
@@ -503,22 +515,84 @@ fn fft_quantized(
     }
 }
 
-fn main() {
+// Loads numpy 2048-szed array of 32 bit integers from .npy file into
+// a Complex array arr
+fn read_npyi32(
+    fname: &String,
+    arr: &mut [Complex; 2048],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let bytes = std::fs::read(fname)?;
+    let npy = npyz::NpyFile::new(&bytes[..])?;
+    let mut count = 0;
+    for number in npy.data::<i32>()? {
+        let number = number?;
+        arr[count] = Complex::new(number.into(), 0);
+        count += 1;
+    }
+    Ok(())
+}
+
+// writerimag: impl io::Write,
+// Serializes output in the .npy format
+fn output_to_npy(fname_real: &String,
+                 fname_imag: &String,
+                 arr: &[Complex; 2048]) -> io::Result<()> {
+    let writerreal = File::create(fname_real)?;
+    let writerimag = File::create(fname_imag)?;
+    let mut writerreal = {
+        npyz::WriteOptions::new()
+            .default_dtype()
+            .shape(&[2048])
+            .writer(writerreal)
+            .begin_nd()?
+    };
+    let mut writerimag = {
+        npyz::WriteOptions::new()
+            .default_dtype()
+            .shape(&[2048])
+            .writer(writerimag)
+            .begin_nd()?
+    };
+    for c in arr.iter() {
+        writerreal.push(&c.re)?;
+        writerimag.push(&c.im)?;
+    }
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let nsinebits = 16;
-    let ndatabits = 18;
-    info!(
-        "Testing FFT of DC input, {} bits for twiddles, {} bits for SINE coeffs",
-        ndatabits, nsinebits
-    );
-    println!("len_arr = {}", 2048);
-    println!("ndatabits = {}", ndatabits);
-    println!("nsinebits = {}", nsinebits);
-    println!("2048 point FFT with DC band input at 100");
-    let mut flip: [Complex; 2048] = [Complex::new(200, 0); 2048]; // input
-    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048]; // output
+    let args: Vec<String> = env::args().collect();
+    // Begin ------ Change these to fit your needs
+    let fname: &String = &args[1]; // Command line argument is the name of file
+    let ndatabits: usize = args[2].parse().unwrap();// = 18; // max 64-16-2=46 bits
+    let nsinebits: usize = args[3].parse().unwrap();// = 16; // max 16 bits
+    // End ------ Change these to fit your needs
+
+    // initiate flip and flop data arrays
+    let mut flip: [Complex; 2048] = [Complex::new(0, 0); 2048];
+    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
+    // read file fname into flip array
+    read_npyi32(fname, &mut flip)?;
+
+    // DFT the input
+    info!("Array head of input file");
+    display_array_head(&flip, 5);
     fft_quantized(&mut flip, &mut flop, nsinebits, ndatabits);
-    display_array(&flop);
+    info!("Array head of DFT of the input file");
+    display_array_head(&flop, 5);
+
+    // Write to .npy file
+    let mut fname_real: String = fname.clone();
+    let mut fname_imag: String = fname.clone();
+    fname_real.truncate(fname_real.len() - 4);
+    fname_real.push_str("_out_real.npy");
+    fname_imag.truncate(fname_imag.len() - 4);
+    fname_imag.push_str("_out_imag.npy");
+
+    output_to_npy(&fname_real, &fname_imag, &flop)?;
+
+    Ok(())
 }
 
 //info!("Initiating array of 8 complex numbers");
@@ -562,7 +636,7 @@ mod test {
 
         //// Compare output with fft2048, should be exact same
         // Perform 2048 point FFT with fft2048()
-        let mut flip2048: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
+        let mut flip2048: [Complex; 2048] = [Complex::new(100, 0); 2048];
         let mut flop2048: [Complex; 2048] = [Complex::new(0, 0); 2048];
         fft2048(&mut flip2048, &mut flop2048);
         // Perform 2048 point FFT with fft()
@@ -589,5 +663,14 @@ mod test {
             assert!(flip[i] == flip2[i]);
             assert!(flop[i] == flop2[i]);
         }
+    }
+
+    // To see clip output run: RUST_LOG=trace cargo test -- --nocapture
+    #[test]
+    fn test_fft_clipped() {
+        // Perform an fft_quantized with larger values than it can take
+        let mut flip: [Complex; 8] = [Complex::new(100, 0); 8];
+        let mut flop: [Complex; 8] = [Complex::new(100, 0); 8];
+        fft_quantized(&mut flip, &mut flop, 8, 8);
     }
 }
