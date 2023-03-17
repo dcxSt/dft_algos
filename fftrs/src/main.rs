@@ -435,6 +435,21 @@ fn fft(flip: &mut [Complex], flop: &mut [Complex]) {
     }
 }
 
+// Takes a 2^n sized complex array, reverses binary index 01101 -> 10110
+// Puts values of flip into flop
+fn bitswitch(flip: &[Complex], flop: &mut [Complex], n: usize) {
+    for idx in 0..(1<<n) {
+        // Bit Flipped Index
+        let mut bfi: usize = 0;
+        for pos in 0..n {
+            bfi |= ((idx & (1 << pos)) >> pos) << (n - 1 - pos);
+        }
+        trace!("idx={:#b}, bfi={:#b}", idx, bfi);
+        // copy the number at index idx into Bit-Flipped-Index (bfi)
+        flop[bfi] = flip[idx];
+    }
+}
+
 // Note on design choice: we always MANIPULATE data going from flip to
 // flop, and then COPY data back from flop into flip. This is not the
 // fastest way to do an FFT, but it makes for readable code.
@@ -480,16 +495,7 @@ fn fft_quantized(
     copy_ab(&*flop, flip);
     // TODO: refactor this for loop into a function used by all fft methods
     debug!("Starting Decimation In Time re-ordering");
-    for idx in 0..len {
-        // Bit Flipped Index
-        let mut bfi: usize = 0;
-        for pos in 0..n {
-            bfi |= ((idx & (1 << pos)) >> pos) << (n - 1 - pos);
-        }
-        trace!("idx={:b}, bfi={:b}", idx, bfi);
-        // copy the number at index idx into Bit-Flipped-Index (bfi)
-        flop[bfi] = flip[idx];
-    }
+    bitswitch(flip, flop, n);
     trace!("Bit swich complete");
     // For each stage of FFT, compute the twiddle factors and multiply
     let mut size: usize; // size of the current butterfly stage
