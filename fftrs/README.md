@@ -29,10 +29,10 @@ cp target/release/fftrs /any/directory/you/want/
 Go into the directory you just copied the binary into. Run the program, supplying three arguments
 
 ```
-./fftrs <name_of_npy_file.npy> <number_of_bits_for_data> <number_of_sine_bits>
+./fftrs <name_of_npy_file.npy> <nbitshift> <number_of_bits_for_data> <number_of_sine_bits>
 ```
 
-The number of sine bits can be at most 16, and the number of data bits must be even and at most 18. 
+The number of bits to shift the input (so that the inter-butterfly stage scaling doesn't kill the signal) is the first input after the name of the npy file. The number of sine bits can be at most 16, and the number of data bits must be even and at most 18. 
 
 For instance
 
@@ -45,6 +45,8 @@ It will output the DFT info files `<input_file_basename>_out_real.npy` and `<out
 
 
 ## Dev stuff
+
+*Reminder:* The optimal STD to select for the FT of an 8-bit quantized input is 35. I.e. when generating simulated data scale your gaussian noise by 35 before throwing converting to int and throwing it into the integer FFT. 
 
 *Remark:* if you'd like to display trace, debug or info logging statements, run `RUST_LOG=trace cargo run`
 

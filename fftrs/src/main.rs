@@ -7,6 +7,8 @@ use std::env; // retrieve arguments
 use std::io;
 use std::fs::File;
 
+// length of a quarter wave
+static QUART_WAV: usize = 2048 / 4 + 1;
 // SINE ranges between 2^15 - 1 and - (2^15 -1) or 1<<15
 static SINE: [i64; 2048] = [
     0, 100, 201, 301, 402, 502, 603, 703, 804, 904, 1005, 1105, 1206, 1306, 1406, 1507, 1607, 1708,
@@ -253,7 +255,7 @@ impl PartialEq for Complex {
     }
 }
 
-// copy a complex array from a into b
+// copy complex array from a into b
 fn copy_ab(a: &[Complex], b: &mut [Complex]) {
     let len = a.len();
     assert!(len == b.len()); // check they are same size
@@ -276,7 +278,7 @@ fn display_array(arr: &[Complex]) {
 
 fn display_array_head(arr: &[Complex], n: usize) {
     for i in 0..n {
-        info!("({})", arr[i]);
+        debug!("({})", arr[i]);
     }
 }
 
@@ -311,8 +313,8 @@ fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
             for k in 0..(size / 2) {
                 let mut d1 = flip[chunk * size + k];
                 let twiddle = Complex::new(
-                    SINE[2048 / 4 + numb * k * 2048 / 8],
-                    SINE[numb * k * 2048 / 8],
+                    SINE[QUART_WAV + numb * k * 2048 / 8], // cos
+                    -SINE[numb * k * 2048 / 8], // i*sin
                 );
                 let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
                 d2.bitshift_right(15); // normalize, twiddle factor too big
@@ -337,7 +339,7 @@ fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
         for pos in 0..=10 {
             bfi |= ((idx & (1 << pos)) >> pos) << (10 - pos);
         }
-        trace!("idx={}, bfi={}", idx, bfi);
+        trace!("idx={:#b}, bfi={:#b}", idx, bfi);
         // Copy the number at idx into bit-flipped-index
         flop[bfi] = flip[idx];
     }
@@ -353,7 +355,10 @@ fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
         for chunk in 0usize..numb {
             for k in 0usize..(size / 2) {
                 let mut d1 = flip[chunk * size + k];
-                let twiddle = Complex::new(SINE[2048 / 4 + numb * k], SINE[numb * k]);
+                let twiddle = Complex::new(
+                    SINE[QUART_WAV + numb * k], 
+                    -SINE[numb * k],
+                );
                 let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
                 d2.bitshift_right(15); // normalize, twiddle factor is order 2^15
                                        // bitshift right by 1 prevent Butterfly overflow
@@ -414,8 +419,8 @@ fn fft(flip: &mut [Complex], flop: &mut [Complex]) {
             for k in 0..(size / 2) {
                 let mut d1 = flip[chunk * size + k];
                 let twiddle = Complex::new(
-                    SINE[2048 / 4 + numb * k * (2048 >> n)],
-                    SINE[numb * k * (2048 >> n)],
+                    SINE[QUART_WAV + numb * k * (2048 >> n)],
+                    -SINE[numb * k * (2048 >> n)],
                 );
                 let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
                 // normalize, twiddle factor is order 2^15
@@ -481,6 +486,7 @@ fn fft_quantized(
         for pos in 0..n {
             bfi |= ((idx & (1 << pos)) >> pos) << (n - 1 - pos);
         }
+        trace!("idx={:b}, bfi={:b}", idx, bfi);
         // copy the number at index idx into Bit-Flipped-Index (bfi)
         flop[bfi] = flip[idx];
     }
@@ -498,8 +504,8 @@ fn fft_quantized(
             for k in 0..(size / 2) {
                 let mut d1 = flip[chunk * size + k];
                 let twiddle = Complex::new(
-                    SINE[2048 / 4 + numb * k * (2048 >> n)] >> (16 - nsinebits),
-                    SINE[numb * k * (2048 >> n)] >> (16 - nsinebits),
+                    SINE[QUART_WAV + numb * k * (2048 >> n)] >> (16 - nsinebits),
+                    (-SINE[numb * k * (2048 >> n)]) >> (16 - nsinebits),
                 );
                 let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
                 // normalize, twiddle factor is order 2^(nsinebits - 1)
@@ -520,13 +526,20 @@ fn fft_quantized(
 fn read_npyi32(
     fname: &String,
     arr: &mut [Complex; 2048],
+    inbitshift: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let bytes = std::fs::read(fname)?;
     let npy = npyz::NpyFile::new(&bytes[..])?;
     let mut count = 0;
     for number in npy.data::<i32>()? {
-        let number = number?;
-        arr[count] = Complex::new(number.into(), 0);
+        let mut n64: i64 = number?.into();
+        n64 = n64 << inbitshift;
+        if n64 > std::i32::MAX as i64 {
+            n64 = std::i32::MAX as i64;
+        } else if n64 < std::i32::MIN as i64 {
+            n64 = std::i32::MIN as i64;
+        }
+        arr[count] = Complex::new(n64, 0);
         count += 1;
     }
     Ok(())
@@ -562,24 +575,27 @@ fn output_to_npy(fname_real: &String,
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
+    info!("Initiating parameters and arrays");
     let args: Vec<String> = env::args().collect();
     // Begin ------ Change these to fit your needs
     let fname: &String = &args[1]; // Command line argument is the name of file
-    let ndatabits: usize = args[2].parse().unwrap();// = 18; // max 64-16-2=46 bits
-    let nsinebits: usize = args[3].parse().unwrap();// = 16; // max 16 bits
+    let inbitshift: usize = args[2].parse().unwrap();// number of bits to shift input
+    let ndatabits: usize = args[3].parse().unwrap();// = 18; // max 64-16-2=46 bits
+    let nsinebits: usize = args[4].parse().unwrap();// = 16; // max 16 bits
     // End ------ Change these to fit your needs
 
     // initiate flip and flop data arrays
     let mut flip: [Complex; 2048] = [Complex::new(0, 0); 2048];
     let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
     // read file fname into flip array
-    read_npyi32(fname, &mut flip)?;
+    read_npyi32(fname, &mut flip, inbitshift)?;
 
     // DFT the input
-    info!("Array head of input file");
+    debug!("Array head of input file");
     display_array_head(&flip, 5);
+    info!("Executing FFT logic");
     fft_quantized(&mut flip, &mut flop, nsinebits, ndatabits);
-    info!("Array head of DFT of the input file");
+    debug!("Array head of DFT of the input file");
     display_array_head(&flop, 5);
 
     // Write to .npy file
@@ -591,7 +607,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fname_imag.push_str("_out_imag.npy");
 
     output_to_npy(&fname_real, &fname_imag, &flop)?;
-
+    info!("Done");
     Ok(())
 }
 
