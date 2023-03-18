@@ -29,15 +29,15 @@ cp target/release/fftrs /any/directory/you/want/
 Go into the directory you just copied the binary into. Run the program, supplying three arguments
 
 ```
-./fftrs <name_of_npy_file.npy> <nbitshift> <number_of_bits_for_data> <number_of_sine_bits>
+./fftrs <name of npy file.npy> <nbitshift> <number of bits for data> <number of sine bits>
 ```
 
-The number of bits to shift the input (so that the inter-butterfly stage scaling doesn't kill the signal) is the first input after the name of the npy file. The number of sine bits can be at most 16, and the number of data bits must be even and at most 18. 
+The number of bits to shift the input (so that the inter-butterfly stage scaling doesn't kill the signal) is the first input `<nbitshift>` after the name of the npy file. The number of sine bits `<number of sine bits>` can be at most 16, and the number of bits used for the real and imaginary parts, each. Since we are doing 64bit integers, this number must be at most 23, because 23 + 23 + 16 + 2 = 64, (the plus two is because we add things together and it's to prevent overflow). 
 
 For instance
 
 ```
-./fftrs dc100.npy 18 16
+./fftrs dc100.npy 8 18 16
 ```
 
 It will output the DFT info files `<input_file_basename>_out_real.npy` and `<output_file_basename>_out_imag.npy`. Have fun. 

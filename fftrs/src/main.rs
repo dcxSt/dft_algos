@@ -194,22 +194,19 @@ impl Complex {
     // TODO: thoroughly check this method
     pub fn get_clipped_msb(self, nbits_keep: usize) -> Complex {
         // Clips most significant bits so that only nbits_keep least
-        // significant bits are kept *in total*, that means we *assume*
-        // that nbits_keep is even and we keep only nbits_keep/2 real
-        // and imaginary bits.
-        // nbits_keep/2 - 1, minus one is to account for the sign bit
-        // The minus one after the bitshift is to turn 1000 into 0111
+        // significant bits are kept *for each re and im*, therefore,
+        // to store one complex number we use 2 * nbits_keep
         let mut re: i64 = self.re;
         let mut im: i64 = self.im;
-        if self.re >= 1 << (nbits_keep / 2 - 1) {
-            re = (1 << (nbits_keep / 2 - 1)) - 1;
-        } else if self.re <= -1 << (nbits_keep / 2 - 1) {
-            re = (-1 << (nbits_keep / 2 - 1)) + 1;
+        if self.re >= 1 << (nbits_keep - 1) {
+            re = (1 << (nbits_keep - 1)) - 1;
+        } else if self.re <= -1 << (nbits_keep - 1) {
+            re = -1 << (nbits_keep - 1);
         }
-        if self.im >= 1 << (nbits_keep / 2 - 1) {
-            im = (1 << (nbits_keep / 2 - 1)) - 1
-        } else if self.im <= -1 << (nbits_keep / 2 - 1) {
-            im = (-1 << (nbits_keep / 2 - 1)) + 1;
+        if self.im >= 1 << (nbits_keep - 1) {
+            im = (1 << (nbits_keep - 1)) - 1
+        } else if self.im <= -1 << (nbits_keep - 1) {
+            im = -1 << (nbits_keep - 1);
         }
         Self::new(re, im)
     }
@@ -338,12 +335,11 @@ fn fft_quantized(
     flop: &mut [Complex], // output
     nsinebits: usize,     // number of bits used to store sine coeffs
     ndatabits: usize,     // number of bits used to store our data
+                          // ndatabits for each real and im componants
 ) {
     trace!("Starting basic tests and checks");
     // Our SINE lookup table is in i16, values in -2^15 to 2^15
     assert!(nsinebits <= 16);
-    // ndatabits should be even, half for imaginary half for real
-    assert!(ndatabits & 1 == 0);
     // Make sure length of arrays are a power of two
     let len = flip.len();
     assert!(len == flop.len());
@@ -445,7 +441,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Begin ------ Change these to fit your needs
     let fname: &String = &args[1]; // Command line argument is the name of file
     let inbitshift: usize = args[2].parse().unwrap(); // number of bits to shift input
-    let ndatabits: usize = args[3].parse().unwrap(); // = 18; // max 64-16-2=46 bits
+    let ndatabits: usize = args[3].parse().unwrap(); // = 18; // max (64-16-2)/2 = 23 bits
     let nsinebits: usize = args[4].parse().unwrap(); // = 16; // max 16 bits
                                                      // End ------ Change these to fit your needs
 
@@ -721,5 +717,22 @@ mod test {
         for (ai, bi) in a.iter().zip(b.iter()) {
             assert!(ai == bi);
         }
+    }
+
+    #[test]
+    fn test_get_clipped_msb() {
+        let mut c0 = Complex::new(1, -5);
+        c0 = c0.get_clipped_msb(5);
+        assert!(c0 == Complex::new(1, -5));
+        let mut c1 = Complex::new(1, -5);
+        c1 = c1.get_clipped_msb(3);
+        println!("c1={}", c1);
+        assert!(c1 == Complex::new(1, -4));
+        let mut c2 = Complex::new(-4, 4);
+        c2 = c2.get_clipped_msb(2);
+        assert!(c2 == Complex::new(-2, 1));
+        let mut c3 = Complex::new(8, 5);
+        c3 = c3.get_clipped_msb(4);
+        assert!(c3 == Complex::new(7, 5));
     }
 }
