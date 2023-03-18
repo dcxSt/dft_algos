@@ -4,12 +4,12 @@ extern crate npyz;
 use log::{debug, info, trace};
 use npyz::WriterBuilder;
 use std::env; // retrieve arguments
-use std::io;
 use std::fs::File;
+use std::io;
 
-// length of a quarter wave
+// index of a quarter wave
 static QUART_WAV: usize = 2048 / 4 + 1;
-// SINE ranges between 2^15 - 1 and - (2^15 -1) or 1<<15
+// 16 bit SINE wave: ranges between 2^15 - 1 and - (2^15 -1) or 1<<15
 static SINE: [i64; 2048] = [
     0, 100, 201, 301, 402, 502, 603, 703, 804, 904, 1005, 1105, 1206, 1306, 1406, 1507, 1607, 1708,
     1808, 1908, 2009, 2109, 2209, 2310, 2410, 2510, 2610, 2711, 2811, 2911, 3011, 3111, 3211, 3311,
@@ -282,7 +282,206 @@ fn display_array_head(arr: &[Complex], n: usize) {
     }
 }
 
-// Simple three-stage DFT Radix-2 DIT
+// Takes a 2^n sized complex array, reverses binary index 01101 -> 10110
+// Puts values of flip into flop
+fn bitswitch(flip: &[Complex], flop: &mut [Complex], n: usize) {
+    for idx in 0..(1 << n) {
+        // Bit Flipped Index
+        let mut bfi: usize = 0;
+        for pos in 0..n {
+            bfi |= ((idx & (1 << pos)) >> pos) << (n - 1 - pos);
+        }
+        trace!("idx={:#b}, bfi={:#b}", idx, bfi);
+        // copy the number at index idx into Bit-Flipped-Index (bfi)
+        flop[bfi] = flip[idx];
+    }
+}
+
+// The core componant of FFTs, the butterfly stage.
+// Computes all twiddle factors and multiplies them appropriately.
+fn butterfly(flip: &mut [Complex], flop: &mut [Complex], nsinebits: usize, n: usize) {
+    //// For each stage of FFT, compute the twiddle factors and multiply
+    let mut size: usize; // size of the current butterfly stage
+    let mut numb: usize; // number of chunks of size 'size', numb*size=2^n
+    for stage in 1..=n {
+        // Copy flop back into flip
+        copy_ab(&*flop, flip);
+        trace!("\nButterfly stage #{}", stage);
+        size = 1 << stage;
+        numb = 1 << (n - stage);
+        for chunk in 0..numb {
+            for k in 0..(size / 2) {
+                let mut d1 = flip[chunk * size + k];
+                let twiddle = Complex::new(
+                    SINE[QUART_WAV + numb * k * (2048 >> n)] >> (16 - nsinebits),
+                    (-SINE[numb * k * (2048 >> n)]) >> (16 - nsinebits),
+                );
+                let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
+                // normalize, twiddle factor is order 2^(nsinebits - 1)
+                d2.bitshift_right(nsinebits - 1);
+                // bitshift right by 1 prevent Butterfly overflow
+                d1.bitshift_right(1);
+                d2.bitshift_right(1);
+                // Set next stage butterfly values
+                flop[chunk * size + k] = d1 + d2;
+                flop[chunk * size + k + size / 2] = d1 - d2;
+            }
+        }
+    }
+}
+
+// Note on design choice: we always MANIPULATE data going from flip to
+// flop, and then COPY data back from flop into flip. This is not the
+// fastest way to do an FFT, but it makes for readable code.
+fn fft_quantized(
+    flip: &mut [Complex], // input (also gets modified)
+    flop: &mut [Complex], // output
+    nsinebits: usize,     // number of bits used to store sine coeffs
+    ndatabits: usize,     // number of bits used to store our data
+) {
+    trace!("Starting basic tests and checks");
+    // Our SINE lookup table is in i16, values in -2^15 to 2^15
+    assert!(nsinebits <= 16);
+    // ndatabits should be even, half for imaginary half for real
+    assert!(ndatabits & 1 == 0);
+    // Make sure length of arrays are a power of two
+    let len = flip.len();
+    assert!(len == flop.len());
+    // initiate n: the log2 of len
+    let mut n: usize = 0;
+    // Loop to find what power of 2 len is, and check it really is one
+    for i in 0..=12 {
+        n = i;
+        if len == (1 << n) {
+            break; // break the loop at the correct power of two
+        }
+    }
+    assert!(
+        n < 12,
+        "The length of our FFT must be a POWER OF TWO STRICTLY LESS than 12"
+    );
+    trace!("n = {}", n);
+    trace!(
+        "Clipping input data (flip) to {} bits to avoid overflow",
+        ndatabits
+    );
+    for i in 0..len {
+        flop[i] = flip[i].get_clipped_msb(ndatabits);
+        if flop[i] != flip[i] {
+            trace!("{} got clipped to {}", flip[i], flop[i]);
+        }
+    }
+    // copy flop back into flip
+    copy_ab(&*flop, flip);
+    // TODO: refactor this for loop into a function used by all fft methods
+    debug!("Starting Decimation In Time re-ordering");
+    // data will be in flop after bitswitch
+    bitswitch(flip, flop, n);
+    trace!("Bit swich complete");
+    // NB: flop is copied back into flip at every stage of the
+    // butterfly so there is no need to copy it right now
+    butterfly(flip, flop, nsinebits, n);
+    // now data is in flop
+}
+
+// Loads numpy 2048-szed array of 32 bit integers from .npy file into
+// a Complex array arr
+fn read_npyi32(
+    fname: &String,
+    arr: &mut [Complex; 2048],
+    inbitshift: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let bytes = std::fs::read(fname)?;
+    let npy = npyz::NpyFile::new(&bytes[..])?;
+    let mut count = 0;
+    for number in npy.data::<i32>()? {
+        let mut n64: i64 = number?.into();
+        n64 = n64 << inbitshift;
+        if n64 > std::i32::MAX as i64 {
+            n64 = std::i32::MAX as i64;
+        } else if n64 < std::i32::MIN as i64 {
+            n64 = std::i32::MIN as i64;
+        }
+        arr[count] = Complex::new(n64, 0);
+        count += 1;
+    }
+    Ok(())
+}
+
+// writerimag: impl io::Write,
+// Serializes output in the .npy format
+fn output_to_npy(
+    fname_real: &String,
+    fname_imag: &String,
+    arr: &[Complex; 2048],
+) -> io::Result<()> {
+    let writerreal = File::create(fname_real)?;
+    let writerimag = File::create(fname_imag)?;
+    let mut writerreal = {
+        npyz::WriteOptions::new()
+            .default_dtype()
+            .shape(&[2048])
+            .writer(writerreal)
+            .begin_nd()?
+    };
+    let mut writerimag = {
+        npyz::WriteOptions::new()
+            .default_dtype()
+            .shape(&[2048])
+            .writer(writerimag)
+            .begin_nd()?
+    };
+    for c in arr.iter() {
+        writerreal.push(&c.re)?;
+        writerimag.push(&c.im)?;
+    }
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+    info!("Initiating parameters and arrays");
+    let args: Vec<String> = env::args().collect();
+    // Begin ------ Change these to fit your needs
+    let fname: &String = &args[1]; // Command line argument is the name of file
+    let inbitshift: usize = args[2].parse().unwrap(); // number of bits to shift input
+    let ndatabits: usize = args[3].parse().unwrap(); // = 18; // max 64-16-2=46 bits
+    let nsinebits: usize = args[4].parse().unwrap(); // = 16; // max 16 bits
+                                                     // End ------ Change these to fit your needs
+
+    // initiate flip and flop data arrays
+    let mut flip: [Complex; 2048] = [Complex::new(0, 0); 2048];
+    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
+    // read file fname into flip array
+    read_npyi32(fname, &mut flip, inbitshift)?;
+
+    // DFT the input
+    debug!("Array head of input file");
+    display_array_head(&flip, 5);
+    info!("Executing FFT logic");
+    fft_quantized(&mut flip, &mut flop, nsinebits, ndatabits);
+    debug!("Array head of DFT of the input file");
+    display_array_head(&flop, 5);
+
+    // Write to .npy file
+    let mut fname_real: String = fname.clone();
+    let mut fname_imag: String = fname.clone();
+    fname_real.truncate(fname_real.len() - 4);
+    fname_real.push_str("_out_real.npy");
+    fname_imag.truncate(fname_imag.len() - 4);
+    fname_imag.push_str("_out_imag.npy");
+
+    output_to_npy(&fname_real, &fname_imag, &flop)?;
+    info!("Done");
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------
+// TESTING STUFF, EVERYTHING BEYOND THIS POINT IS USED ONLY FOR THE PURPOSE OF TESTING THE ABOVE
+// CODE
+
+// CODE Simple three-stage DFT Radix-2 DIT
 #[allow(dead_code)]
 fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
     // Decimation in time re-ordering, flip -> flop
@@ -314,7 +513,7 @@ fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
                 let mut d1 = flip[chunk * size + k];
                 let twiddle = Complex::new(
                     SINE[QUART_WAV + numb * k * 2048 / 8], // cos
-                    -SINE[numb * k * 2048 / 8], // i*sin
+                    -SINE[numb * k * 2048 / 8],            // i*sin
                 );
                 let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
                 d2.bitshift_right(15); // normalize, twiddle factor too big
@@ -355,10 +554,7 @@ fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
         for chunk in 0usize..numb {
             for k in 0usize..(size / 2) {
                 let mut d1 = flip[chunk * size + k];
-                let twiddle = Complex::new(
-                    SINE[QUART_WAV + numb * k], 
-                    -SINE[numb * k],
-                );
+                let twiddle = Complex::new(SINE[QUART_WAV + numb * k], -SINE[numb * k]);
                 let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
                 d2.bitshift_right(15); // normalize, twiddle factor is order 2^15
                                        // bitshift right by 1 prevent Butterfly overflow
@@ -435,202 +631,6 @@ fn fft(flip: &mut [Complex], flop: &mut [Complex]) {
     }
 }
 
-// Takes a 2^n sized complex array, reverses binary index 01101 -> 10110
-// Puts values of flip into flop
-fn bitswitch(flip: &[Complex], flop: &mut [Complex], n: usize) {
-    for idx in 0..(1<<n) {
-        // Bit Flipped Index
-        let mut bfi: usize = 0;
-        for pos in 0..n {
-            bfi |= ((idx & (1 << pos)) >> pos) << (n - 1 - pos);
-        }
-        trace!("idx={:#b}, bfi={:#b}", idx, bfi);
-        // copy the number at index idx into Bit-Flipped-Index (bfi)
-        flop[bfi] = flip[idx];
-    }
-}
-
-// Note on design choice: we always MANIPULATE data going from flip to
-// flop, and then COPY data back from flop into flip. This is not the
-// fastest way to do an FFT, but it makes for readable code.
-fn fft_quantized(
-    flip: &mut [Complex], // input (also gets modified)
-    flop: &mut [Complex], // output
-    nsinebits: usize,     // number of bits used to store sine coeffs
-    ndatabits: usize,     // number of bits used to store our data
-) {
-    trace!("Starting basic tests and checks");
-    // Our SINE lookup table is in i16, values in -2^15 to 2^15
-    assert!(nsinebits <= 16);
-    // ndatabits should be even, half for imaginary half for real
-    assert!(ndatabits & 1 == 0);
-    // Make sure length of arrays are a power of two
-    let len = flip.len();
-    assert!(len == flop.len());
-    // initiate n: the log2 of len
-    let mut n: usize = 0;
-    // Loop to find what power of 2 len is, and check it really is one
-    for i in 0..=12 {
-        n = i;
-        if len == (1 << n) {
-            break; // break the loop at the correct power of two
-        }
-    }
-    assert!(
-        n < 12,
-        "The length of our FFT must be a POWER OF TWO STRICTLY LESS than 12"
-    );
-    trace!("n = {}", n);
-    trace!(
-        "Clipping input data (flip) to {} bits to avoid overflow",
-        ndatabits
-    );
-    for i in 0..len {
-        flop[i] = flip[i].get_clipped_msb(ndatabits);
-        if flop[i] != flip[i] {
-            trace!("{} got clipped to {}", flip[i], flop[i]);
-        }
-    }
-    // copy flop back into flip
-    copy_ab(&*flop, flip);
-    // TODO: refactor this for loop into a function used by all fft methods
-    debug!("Starting Decimation In Time re-ordering");
-    bitswitch(flip, flop, n);
-    trace!("Bit swich complete");
-    // For each stage of FFT, compute the twiddle factors and multiply
-    let mut size: usize; // size of the current butterfly stage
-    let mut numb: usize; // number of chunks of size 'size', numb*size=len
-    for stage in 1..=n {
-        // Copy flop back into flip
-        copy_ab(&*flop, flip);
-        trace!("\nButterfly stage #{}", stage);
-        size = 1 << stage;
-        numb = 1 << (n - stage);
-        for chunk in 0..numb {
-            for k in 0..(size / 2) {
-                let mut d1 = flip[chunk * size + k];
-                let twiddle = Complex::new(
-                    SINE[QUART_WAV + numb * k * (2048 >> n)] >> (16 - nsinebits),
-                    (-SINE[numb * k * (2048 >> n)]) >> (16 - nsinebits),
-                );
-                let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
-                // normalize, twiddle factor is order 2^(nsinebits - 1)
-                d2.bitshift_right(nsinebits - 1);
-                // bitshift right by 1 prevent Butterfly overflow
-                d1.bitshift_right(1);
-                d2.bitshift_right(1);
-                // Set next stage butterfly values
-                flop[chunk * size + k] = d1 + d2;
-                flop[chunk * size + k + size / 2] = d1 - d2;
-            }
-        }
-    }
-}
-
-// Loads numpy 2048-szed array of 32 bit integers from .npy file into
-// a Complex array arr
-fn read_npyi32(
-    fname: &String,
-    arr: &mut [Complex; 2048],
-    inbitshift: usize,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let bytes = std::fs::read(fname)?;
-    let npy = npyz::NpyFile::new(&bytes[..])?;
-    let mut count = 0;
-    for number in npy.data::<i32>()? {
-        let mut n64: i64 = number?.into();
-        n64 = n64 << inbitshift;
-        if n64 > std::i32::MAX as i64 {
-            n64 = std::i32::MAX as i64;
-        } else if n64 < std::i32::MIN as i64 {
-            n64 = std::i32::MIN as i64;
-        }
-        arr[count] = Complex::new(n64, 0);
-        count += 1;
-    }
-    Ok(())
-}
-
-// writerimag: impl io::Write,
-// Serializes output in the .npy format
-fn output_to_npy(fname_real: &String,
-                 fname_imag: &String,
-                 arr: &[Complex; 2048]) -> io::Result<()> {
-    let writerreal = File::create(fname_real)?;
-    let writerimag = File::create(fname_imag)?;
-    let mut writerreal = {
-        npyz::WriteOptions::new()
-            .default_dtype()
-            .shape(&[2048])
-            .writer(writerreal)
-            .begin_nd()?
-    };
-    let mut writerimag = {
-        npyz::WriteOptions::new()
-            .default_dtype()
-            .shape(&[2048])
-            .writer(writerimag)
-            .begin_nd()?
-    };
-    for c in arr.iter() {
-        writerreal.push(&c.re)?;
-        writerimag.push(&c.im)?;
-    }
-    Ok(())
-}
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
-    info!("Initiating parameters and arrays");
-    let args: Vec<String> = env::args().collect();
-    // Begin ------ Change these to fit your needs
-    let fname: &String = &args[1]; // Command line argument is the name of file
-    let inbitshift: usize = args[2].parse().unwrap();// number of bits to shift input
-    let ndatabits: usize = args[3].parse().unwrap();// = 18; // max 64-16-2=46 bits
-    let nsinebits: usize = args[4].parse().unwrap();// = 16; // max 16 bits
-    // End ------ Change these to fit your needs
-
-    // initiate flip and flop data arrays
-    let mut flip: [Complex; 2048] = [Complex::new(0, 0); 2048];
-    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
-    // read file fname into flip array
-    read_npyi32(fname, &mut flip, inbitshift)?;
-
-    // DFT the input
-    debug!("Array head of input file");
-    display_array_head(&flip, 5);
-    info!("Executing FFT logic");
-    fft_quantized(&mut flip, &mut flop, nsinebits, ndatabits);
-    debug!("Array head of DFT of the input file");
-    display_array_head(&flop, 5);
-
-    // Write to .npy file
-    let mut fname_real: String = fname.clone();
-    let mut fname_imag: String = fname.clone();
-    fname_real.truncate(fname_real.len() - 4);
-    fname_real.push_str("_out_real.npy");
-    fname_imag.truncate(fname_imag.len() - 4);
-    fname_imag.push_str("_out_imag.npy");
-
-    output_to_npy(&fname_real, &fname_imag, &flop)?;
-    info!("Done");
-    Ok(())
-}
-
-//info!("Initiating array of 8 complex numbers");
-//let mut flip: [Complex; 8] = [Complex::new(1000, 0); 8]; // input
-//let mut flop: [Complex; 8] = [Complex::new(0, 0); 8]; // output
-//info!("Performing FFT");
-//fft(&mut flip, &mut flop);
-//display_array(&flop); // Display result
-
-//info!("Initiating array of 2048 complex numbers");
-//let mut flip: [Complex; 2048] = [Complex::new(1_000, 0); 2048];
-//let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
-//info!("Performing FFT");
-//fft(&mut flip, &mut flop);
-//display_array(&flop); // Display result
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -687,6 +687,22 @@ mod test {
         }
     }
 
+    #[test]
+    fn test_fft_quantized2() {
+        // Perform an fft_quantized, see if it breaks
+        let mut flip: [Complex; 2048] = [Complex::new(100, 0); 2048];
+        let mut flop: [Complex; 2048] = [Complex::new(100, 0); 2048];
+        fft_quantized(&mut flip, &mut flop, 16, 16);
+        // Compare output with other integer FFT
+        let mut flip2: [Complex; 2048] = [Complex::new(100, 0); 2048];
+        let mut flop2: [Complex; 2048] = [Complex::new(100, 0); 2048];
+        fft(&mut flip2, &mut flop2);
+        for i in 0..2048 {
+            assert!(flip[i] == flip2[i]);
+            assert!(flop[i] == flop2[i]);
+        }
+    }
+
     // To see clip output run: RUST_LOG=trace cargo test -- --nocapture
     #[test]
     fn test_fft_clipped() {
@@ -694,5 +710,16 @@ mod test {
         let mut flip: [Complex; 8] = [Complex::new(100, 0); 8];
         let mut flop: [Complex; 8] = [Complex::new(100, 0); 8];
         fft_quantized(&mut flip, &mut flop, 8, 8);
+    }
+
+    #[test]
+    fn test_copy_ab() {
+        // copy a into b
+        let a: [Complex; 8] = [Complex::new(1, 1); 8];
+        let mut b: [Complex; 8] = [Complex::new(0, 0); 8];
+        copy_ab(&a, &mut b);
+        for (ai, bi) in a.iter().zip(b.iter()) {
+            assert!(ai == bi);
+        }
     }
 }
