@@ -235,7 +235,7 @@ impl std::ops::Add for Complex {
 impl std::ops::Sub for Complex {
     type Output = Complex;
     fn sub(self, rhs: Complex) -> Complex {
-        Complex::new(rhs.re - self.re, rhs.im - self.im)
+        Complex::new(self.re - rhs.re, self.im - rhs.im)
     }
 }
 
