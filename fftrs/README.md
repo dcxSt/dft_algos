@@ -50,6 +50,13 @@ It will output the DFT info files `<input_file_basename>_out_real.npy` and `<out
 
 *Remark:* if you'd like to display trace, debug or info logging statements, run `RUST_LOG=trace cargo run`
 
+## TODO
+- [ ] Change twiddle factors to 32i to expand range
+- [ ] Change how it's coded so that rounding of twiddle factors is done *well* not just with the bitshift operator >> will induce bias, make sine smaller than it should be
+- [ ] Write python script to generate bunch of `.npy` gaussian random noise
+- [ ] Write python script to load all input and output data and make some plots comparing integer fft and true ffts
+- [ ] extend bash script to generate random noise (by executing python file), execute integer fft with all the knobs and bells, then execute another python file to plot the output and save the plots. 
+
 ## Debugging 
 
 Output of `cargo run`
