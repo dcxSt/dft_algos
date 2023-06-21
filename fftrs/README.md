@@ -59,7 +59,7 @@ It will output the DFT info files `<input_file_basename>_out_real.npy` and `<out
 
 ## Debugging 
 
-Output of `cargo run`
+(previous) output of `cargo run`
 
 ```
 before fft8: 0 + i 0
