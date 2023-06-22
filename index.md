@@ -36,16 +36,56 @@ The matrix can be written more succinctly like so
 It is symmetric, orthogonal, and unitary (up to a factor of \\(1/\sqrt n\\)) i.e. it's inverse is just \\(1/n\\) times it's hermitian conjugate.
 
 # Properties of the DFT
-*steal stuff from jon's note for this section*
+*mostly stolen from [Jon](https://github.com/sievers)'s note for this section*
+
+## Inverse DFT
+
+The inverse DFT is it's hermitian conjugate (up to a scaling factor of N). 
+
+\\[F^\dagger F x[t] = \sum_k \exp(2\pi ikt'/N) \sum_t \exp(-2\pi ikt/N) x[t] = \sum_t x[t] \sum_k \exp(-2\pi ik(t-t')/N) = \sum_t x[t]N\delta(t-t') = N x[t]\\]
+
 ## Shifted DFT
+If we know the DFT of a function, we also can work out the DFT of a shifted version of the function. 
+
+\\[F\{x[t-m]\}(k) &= \sum_t' x[t']\exp(-2\pi ik(t'+m)) = \exp(-2\pi ikm/N) F\{x[t]\}(k)\\]
+
+In words, we apply a phase ramp with slope $\exp(-2\pi im/N)$ to the original Fourier transform. 
 
 ## Flipped DFT
+If we know the DFT of a function, the DFT of the flipped version $f(-x)$ is:
+
+\\[X(k) = \sum_t x[-t]\exp(-2\pi ikt/N) = \sum_t x[t]\exp(2\pi ikt/N) (\sum_t x^\ast[t] \exp(-2\pi ikt/N))^\ast\\]
+
+Which is the conjugate of the DFT of the conjugate of $x[t]$. For the special (but common) case that $x[t]$ is real, the DFT of $x[-t]$ is the complex conjugate of the DFT of $x[t]$.
+
+## Order of the DFT matrix
+*Up to scaling factor $\sqrt N$*
+
+The DFT matrix is an order four unitary transformation. i.e. $F\circ F\circ F\circ F x[t] = x[t]$. To see this we apply it twice. 
+
+\\[\frac{1}{N}\sum_s \exp(-2\pi iks/N) \sum_t \exp(-2\pi ist/N) x[t] = \frac{1}{N} \sum_t x[t]\sum_s \exp(-2\pi is(k+t)/N) = \sum_t x[t]\delta(k+t)/N = x[-k]\\]
+
+Applying the DFT twice to $x[t]$ flips it to $x[-t]$. Therefore, if we apply it four times we retrieve our original data. It follows that $F^3 = F^\dag = F^{-1}$.
+
 
 ## Aliasing
+What if we want to know that DFT of some larger frequency $X[k+mN]$ for integer $m$? Well, that is
+
+\\[\sum_t x[t]\exp(-2\pi i(k+mN)t/N) = \sum_t x[t]\exp(-2\pi ikt/N)\\]
+
+So $X[k+mN] = X[k]$. Similarly if we take the inverse DFT $F^\dag \{x[t]\}(k+mN) = F^\dag \{x[t]\}(k)$. 
+
+While we usually only think about a single period of the DFT, in practice they repeat infinitely and you would do well to keep that in mind. In particular, a jump from the right edge of our function to the left edge looks just like a jump in the middle of our function - one way to see this is to apply a phase ramp from the shifting theorem to move the edge of the domain into the middle.
+
+Similarly, if we have high frequency components in our data, where $k>N$, the DFT of those components are indistinguishable from componants where $0\leq N$. This can be a huge problem when applying DFT to signal processing and usually one uses analog (not digital) filters to make sure that frequency componants outside of your nyquist zone of interest are gone before the digital system ever sees the signals. 
+
+*A 'nyquist zone' is the width of the largest piece of bandwidth that can be fully described by your data given your sampleing rate. More on this below.*
 
 ## DFT of Real Functions
+Applying the flip thoerem to $X(k)$, we have $X(-k)= (F x[t]^\ast)^\ast$. When x[t] is real, then this reduces to $X(-k)=X(k)^\ast$. However, from aliasing we know that $X(-k)=X(N-k)$, so for real data, we have $X(N-k)=X(k)^\ast$. *i.e.* the second half of the DFT is just the flip of the conjugate of the first half. This is such a common case that Fourier transform libraries universally support the transforms of real data, and only return the first half of the DFT. You would generally do well to keep this aliasing in mind, and think of the highest frequences in the DFT as the lowest negative frequencies. 
 
 ## Sampling/Nyquist Theorem
+We now have enough bits in place to understand one of the most fundamental theorems in digital signal processing. If we have a signal with maximum frequency $\nu$, how fast do we have to measure that signal to capture all its information? Naively, you might think if you had a signal with frequnecy up to 1MHz, that you would have to measure the signal one million times per second. This isn't right, because really the signal generally has components from -1MHz to 1MHz, for a total width of 2MHz. That means you had better sample 2 million times per second to capture all the information in the signal. 
 
 ## Discrete Convolution theorem
 
