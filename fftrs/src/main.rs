@@ -5,7 +5,7 @@ extern crate integer_fft; // our library
 use integer_fft::complex::Complex;
 use integer_fft::constants::{QUART_WAV, SINE};
 use integer_fft::intfft::{copy_ab, fft_quantized};
-use integer_fft::iomod::{output_to_npy, read_npyi32};
+//use integer_fft::iomod::{output_to_npy, read_npyi32};
 use log::{debug, info, trace};
 use std::env; // retrieve arguments
 
@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     // Begin ------ Change these to fit your needs
     let fname: &String = &args[1]; // Command line argument is the name of file
-    let inbitshift: usize = args[2].parse().unwrap(); // number of bits to shift input (left, see io)
+    //let inbitshift: usize = args[2].parse().unwrap(); // number of bits to shift input (left, see io)
     let ndatabits: usize = args[3].parse().unwrap(); // = 18; // max (64-16-2)/2 = 23 bits
     let nsinebits: usize = args[4].parse().unwrap(); // = 16; // max 16 bits
                                                      // End ------ Change these to fit your needs
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut flip: [Complex; 2048] = [Complex::new(0, 0); 2048];
     let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
     // read file fname into flip array
-    read_npyi32(fname, &mut flip, inbitshift)?;
+    //read_npyi32(fname, &mut flip, inbitshift)?;
 
     // DFT the input
     debug!("Array head of input file");
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fname_imag.truncate(fname_imag.len() - 4);
     fname_imag.push_str("_out_imag.npy");
 
-    output_to_npy(&fname_real, &fname_imag, &flop)?;
+    //output_to_npy(&fname_real, &fname_imag, &flop)?;
     info!("Done");
     Ok(())
 }
