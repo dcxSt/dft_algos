@@ -67,6 +67,12 @@ rustflags = [
 ```
 
 ## TODO
+- [x] python bindings
+- [ ] Refactor naming convention, put thought into this
+- [ ] variable sized power-of-two FFTs
+    - [ ] Switch to vector instead of static sized array?
+- [ ] increase capacity (sine way up to 1<<16 instead of 1<<11)
+
 - [ ] Change twiddle factors to 32i to expand range
 - [ ] Change how it's coded so that rounding of twiddle factors is done *well* not just with the bitshift operator >> will induce bias, make sine smaller than it should be
 - [ ] Write python script to generate bunch of `.npy` gaussian random noise

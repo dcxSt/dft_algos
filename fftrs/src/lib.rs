@@ -51,7 +51,7 @@ fn integer_fft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         py: Python<'py>,
         xre: PyReadonlyArrayDyn<i64>,
         xim: PyReadonlyArrayDyn<i64>,
-        ) -> &'py PyArray<i64, Ix1> {
+        ) -> (&'py PyArray<i64, Ix1>, &'py PyArray<i64, Ix1>) {
         let xre = xre.as_array();
         let xim = xim.as_array();
         assert_eq!(xre.len(), 2048);
@@ -73,7 +73,8 @@ fn integer_fft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
             outim.push(flop[i].im);
         }
         let outre_pyarray = PyArray::from_vec(py, outre);
-        return outre_pyarray;
+        let outim_pyarray = PyArray::from_vec(py, outim);
+        return (outre_pyarray, outim_pyarray);
     }
 //     /// Python wrapper for integer FFT
 //     #[pyfn(m)]
