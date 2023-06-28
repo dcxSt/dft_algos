@@ -44,11 +44,27 @@ It will output the DFT info files `<input_file_basename>_out_real.npy` and `<out
 
 
 
-## Dev stuff
+## Dev Notes
 
 *Reminder:* The optimal STD to select for the FT of an 8-bit quantized input is 35. I.e. when generating simulated data scale your gaussian noise by 35 before throwing converting to int and throwing it into the integer FFT. 
 
 *Remark:* if you'd like to display trace, debug or info logging statements, run `RUST_LOG=trace cargo run`
+
+`pyo3` breaks if on Apple's ARM machines if you don't have the following in your `~/cargo/config`, [as pointed out by Dennis in StackOverflow](https://stackoverflow.com/questions/28124221/error-linking-with-cc-failed-exit-code-1)
+
+```toml
+[target.x86_64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]
+```
 
 ## TODO
 - [ ] Change twiddle factors to 32i to expand range
@@ -113,5 +129,6 @@ Out:
 
 [7993+i0, -1+i-3, -1+i-1, 1+i0, -1+i0, 1+i-1, 1+i-1, -1+i2, ]
 ```
+
 
 

@@ -1,7 +1,7 @@
 extern crate npyz;
 
 use crate::constants::{QUART_WAV, SINE};
-use crate::Complex;
+use crate::complex::Complex;
 use log::{debug, trace};
 
 /// Copy complex array from a into b (utility function)

@@ -1,14 +1,11 @@
 extern crate env_logger;
 extern crate npyz;
-mod complex;
-mod constants;
-mod intfft;
-mod iomod;
+extern crate integer_fft; // our library
 
-use complex::Complex;
-use constants::{QUART_WAV, SINE};
-use intfft::{copy_ab, fft_quantized};
-use iomod::{output_to_npy, read_npyi32};
+use integer_fft::complex::Complex;
+use integer_fft::constants::{QUART_WAV, SINE};
+use integer_fft::intfft::{copy_ab, fft_quantized};
+use integer_fft::iomod::{output_to_npy, read_npyi32};
 use log::{debug, info, trace};
 use std::env; // retrieve arguments
 
