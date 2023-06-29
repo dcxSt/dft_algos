@@ -76,8 +76,8 @@ pub fn int_fft(
     flip: &mut Vec<Complex>, // input (also gets modified)
     flop: &mut Vec<Complex>, // output
     n: u32, // 2^n is size of frame
-    nsinebits: usize,     // number of bits used to store sine coeffs
     ndatabits: usize,     // number of bits used to store our data
+    nsinebits: usize,     // number of bits used to store sine coeffs
 ) {
     // Our SINE lookup table is in i16, values in -2^15 to 2^15
     assert!(nsinebits <= 16);
