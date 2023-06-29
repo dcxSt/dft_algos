@@ -1,6 +1,7 @@
 pub mod complex;
 pub mod constants;
 pub mod intfft;
+pub mod intfft_vec;
 //pub mod iomod;
 
 use complex::Complex;
@@ -47,6 +48,41 @@ fn integer_fft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
             flip[i] = Complex::new(xre[i], xim[i]);
         }
         int_fft(&mut flip, &mut flop, 16, 18);
+        // Now flop has fft'd data
+        // Read data back into two i64 arrays
+        let mut outre = Vec::<i64>::new();
+        let mut outim = Vec::<i64>::new();
+        for i in 0..2048 {
+            outre.push(flop[i].re);
+            outim.push(flop[i].im);
+        }
+        let outre_pyarray = PyArray::from_vec(py, outre);
+        let outim_pyarray = PyArray::from_vec(py, outim);
+        return (outre_pyarray, outim_pyarray);
+    }
+    #[pyfn(m)]
+    #[pyo3(name = "fft")]
+    fn integer_fft_vec<'py>(
+        py: Python<'py>,
+        xre: PyReadonlyArrayDyn<i64>,
+        xim: PyReadonlyArrayDyn<i64>,
+        n: u32, // 2^n is the length of the fft
+    ) -> (&'py PyArray<i64, Ix1>, &'py PyArray<i64, Ix1>) {
+        let xre = xre.as_array();
+        let xim = xim.as_array();
+        let lframe: usize = 2usize.pow(n);
+        assert_eq!(xre.len(), lframe);
+        assert_eq!(xim.len(), lframe);
+        // Declare input arrays
+        let mut flip = Vec::<Complex>::with_capacity(lframe);
+        let mut flop = Vec::<Complex>::with_capacity(lframe);
+        // Initiate input array, 
+        // Maybe exists better way than deep copy forloop?
+        for i in 0..lframe {
+            flip.push(Complex::new(xre[i], xim[i]));
+        }
+        // Perform FFT
+        intfft_vec::int_fft(&mut flip, &mut flop, n, 16, 18);
         // Now flop has fft'd data
         // Read data back into two i64 arrays
         let mut outre = Vec::<i64>::new();

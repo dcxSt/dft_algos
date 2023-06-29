@@ -5,6 +5,7 @@ extern crate integer_fft; // our library
 use integer_fft::complex::Complex;
 use integer_fft::constants::{QUART_WAV, SINE};
 use integer_fft::intfft::{copy_ab, int_fft};
+use integer_fft::intfft_vec;
 //use integer_fft::iomod::{output_to_npy, read_npyi32};
 use log::{debug, info, trace};
 use std::env; // retrieve arguments
@@ -279,6 +280,22 @@ mod test {
     }
 
     #[test]
+    fn test_int_fft_vec() {
+        // Perform an int_fft, see if it breaks
+        let mut flip: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
+        let mut flop: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
+        intfft_vec::int_fft(&mut flip, &mut flop, 3, 16, 16);
+        // Compare output with other integer FFT
+        let mut flip2: [Complex; 8] = [Complex::new(100, 0); 8];
+        let mut flop2: [Complex; 8] = [Complex::new(100, 0); 8];
+        fft(&mut flip2, &mut flop2);
+        for i in 0..8 {
+            assert!(flip[i] == flip2[i]);
+            assert!(flop[i] == flop2[i]);
+        }
+    }
+
+    #[test]
     fn test_int_fft2() {
         // Perform an int_fft, see if it breaks
         let mut flip: [Complex; 2048] = [Complex::new(100, 0); 2048];
@@ -309,6 +326,17 @@ mod test {
         let a: [Complex; 8] = [Complex::new(1, 1); 8];
         let mut b: [Complex; 8] = [Complex::new(0, 0); 8];
         copy_ab(&a, &mut b);
+        for (ai, bi) in a.iter().zip(b.iter()) {
+            assert!(ai == bi);
+        }
+    }
+
+    #[test]
+    fn test_copy_ab_vec() {
+        // copy a into b
+        let a: Vec<Complex> = Vec::from([Complex::new(1, 1); 8]);
+        let mut b: Vec<Complex> = Vec::from([Complex::new(0, 0); 8]);
+        intfft_vec::copy_ab(&a, &mut b);
         for (ai, bi) in a.iter().zip(b.iter()) {
             assert!(ai == bi);
         }
