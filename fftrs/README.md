@@ -1,6 +1,30 @@
-# How to use
+Implements Radix-2 decimation in time FFT algorithm on integer arrays of limited bitdepth. 
 
-This program performs a 2048 point integer FFT on 32 bit integer data in numpy serialized arrays, files with the `.npy` extention. If you'd like to add flexibility, feel free to play with the code, I did my best to make it easy to adapt. 
+# Quick-start python package
+
+Install the package with `pip install integer_fft`. 
+
+Import it into your python script or ipython environment with `import integer_fft`. 
+
+So far it contains only one function, `integer_fft.fft`. This function takes four arguments: 
+
+```
+xre : numpy.ndarray
+    The real componant of the Array to FFT. A real 1d numpy array whose 
+    size is a power of 2 (<=2048), with dtype="int"
+xim : numpy.ndarray
+    The imaginary componant of the Array to FFT. A real 1d numpy array 
+    whose size is a power of 2 (<=2048), with dtype="int"
+ndatabits : int
+    Positive integer between 0 and 23 inclusive. The amount of bits your 
+    data is allowed to take up throughout the FFT butterfly stages. 
+nsinebits : int
+    Positive integer between 0 and 16 inclusive. Number of bits used for
+    real and imaginary parts (each) of twiddle factors.
+```
+
+
+# You can also use rust directly 
 
 Clone this repository
 
