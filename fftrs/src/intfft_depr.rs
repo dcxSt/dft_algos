@@ -1,5 +1,3 @@
-// same as intfft but uses vectors instead of arrays
-
 extern crate npyz;
 
 use crate::constants::{QUART_WAV, SINE};
@@ -7,7 +5,7 @@ use crate::complex::Complex;
 use log::{debug, trace};
 
 /// Copy complex array from a into b (utility function)
-pub fn copy_ab(a: &Vec<Complex>, b: &mut Vec<Complex>) {
+pub fn copy_ab(a: &[Complex], b: &mut [Complex]) {
     let len = a.len();
     assert!(len == b.len()); // check they are same size
     for idx in 0..len {
@@ -17,9 +15,7 @@ pub fn copy_ab(a: &Vec<Complex>, b: &mut Vec<Complex>) {
 
 /// Takes a 2^n sized complex array, reverses binary index 01101 -> 10110
 /// Puts values of flip into flop
-fn bitswitch(flip: &Vec<Complex>, flop: &mut Vec<Complex>, n: u32) {
-    assert_eq!(flip.len(), (1 << n));
-    assert_eq!(flop.len(), (1 << n));
+fn bitswitch(flip: &[Complex], flop: &mut [Complex], n: usize) {
     for idx in 0..(1 << n) {
         // Bit Flipped Index
         let mut bfi: usize = 0;
@@ -34,10 +30,7 @@ fn bitswitch(flip: &Vec<Complex>, flop: &mut Vec<Complex>, n: u32) {
 
 /// The core componant of FFTs, the butterfly stage.
 /// Computes all twiddle factors and multiplies them appropriately.
-fn butterfly(flip: &mut Vec<Complex>, 
-    flop: &mut Vec<Complex>, 
-    nsinebits: usize, 
-    n: u32) {
+fn butterfly(flip: &mut [Complex], flop: &mut [Complex], nsinebits: usize, n: usize) {
     //// For each stage of FFT, compute the twiddle factors and multiply
     let mut size: usize; // size of the current butterfly stage
     let mut numb: usize; // number of chunks of size 'size', numb*size=2^n
@@ -68,22 +61,41 @@ fn butterfly(flip: &mut Vec<Complex>,
     }
 }
 
-
 // Note on design choice: we always MANIPULATE data going from flip to
 // flop, and then COPY data back from flop into flip. This is not the
 // fastest way to do an FFT, but it makes for readable code.
 pub fn int_fft(
-    flip: &mut Vec<Complex>, // input (also gets modified)
-    flop: &mut Vec<Complex>, // output
-    n: u32, // 2^n is size of frame
-    ndatabits: usize,     // number of bits used to store our data
+    flip: &mut [Complex], // input (also gets modified)
+    flop: &mut [Complex], // output
     nsinebits: usize,     // number of bits used to store sine coeffs
+    ndatabits: usize,     // number of bits used to store our data
+                          // ndatabits for each real and im componants
 ) {
+    trace!("Starting basic tests and checks");
     // Our SINE lookup table is in i16, values in -2^15 to 2^15
     assert!(nsinebits <= 16);
-    let lframe: usize = 2usize.pow(n);
+    // Make sure length of arrays are a power of two
+    let len = flip.len();
+    assert!(len == flop.len());
     // initiate n: the log2 of len
-    for i in 0..lframe {
+    let mut n: usize = 0;
+    // Loop to find what power of 2 len is, and check it really is one
+    for i in 0..=12 {
+        n = i;
+        if len == (1 << n) {
+            break; // break the loop at the correct power of two
+        }
+    }
+    assert!(
+        n < 12,
+        "The length of our FFT must be a POWER OF TWO STRICTLY LESS than 12"
+    );
+    trace!("n = {}", n);
+    trace!(
+        "Clipping input data (flip) to {} bits to avoid overflow",
+        ndatabits
+    );
+    for i in 0..len {
         flop[i] = flip[i].get_clipped_msb(ndatabits);
         if flop[i] != flip[i] {
             trace!("{} got clipped to {}", flip[i], flop[i]);
