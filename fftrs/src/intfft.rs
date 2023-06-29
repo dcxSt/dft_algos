@@ -64,7 +64,7 @@ fn butterfly(flip: &mut [Complex], flop: &mut [Complex], nsinebits: usize, n: us
 // Note on design choice: we always MANIPULATE data going from flip to
 // flop, and then COPY data back from flop into flip. This is not the
 // fastest way to do an FFT, but it makes for readable code.
-pub fn fft_quantized(
+pub fn int_fft(
     flip: &mut [Complex], // input (also gets modified)
     flop: &mut [Complex], // output
     nsinebits: usize,     // number of bits used to store sine coeffs

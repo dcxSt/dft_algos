@@ -4,29 +4,12 @@ pub mod intfft;
 //pub mod iomod;
 
 use complex::Complex;
-use intfft::fft_quantized;
+use intfft::int_fft;
 //use pyo3::prelude::*;
 use pyo3::{pymodule, types::PyModule, PyResult, Python};
 use numpy::{IntoPyArray, PyArrayDyn, PyReadonlyArrayDyn, PyArray};
 use numpy::ndarray::{ArrayD, ArrayViewD, Ix1}; //, ArrayViewMutD};
 
-//use complex::Complex;
-//use constants::{QUART_WAV, SINE};
-//use intfft::{copy_ab, fft_quantized};
-//use iomod::{output_to_npy, read_npyi32};
-//use log::{debug, info, trace};
-//use std::env; // retrieve arguments
-
-
-
-// // Fill a complex array with data from 
-// fn fill_complex_array(xre: &[i64], xim: &[i64]) -> [Complex] {
-//     assert_eq!(xre.len(),xim.len());
-//     let len: usize = xre.len();
-//     let mut xout: [Complex] = [Complex::new(0, 0)];
-//     return xout;
-// }
-// 
 /// Python module
 #[pymodule]
 fn integer_fft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -63,7 +46,7 @@ fn integer_fft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         for i in 0..2048 {
             flip[i] = Complex::new(xre[i], xim[i]);
         }
-        fft_quantized(&mut flip, &mut flop, 16, 18);
+        int_fft(&mut flip, &mut flop, 16, 18);
         // Now flop has fft'd data
         // Read data back into two i64 arrays
         let mut outre = Vec::<i64>::new();
@@ -79,7 +62,7 @@ fn integer_fft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 //     /// Python wrapper for integer FFT
 //     #[pyfn(m)]
 //     #[pyo3(name = "integerfft")]
-//     fn fft_quantized_py<'py>(
+//     fn int_fft_py<'py>(
 //         py: Python<'py>,
 //         xre: PyReadonlyArrayDyn<i64>,
 //         xim: PyReadonlyArrayDyn<i64>,

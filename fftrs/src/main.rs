@@ -4,7 +4,7 @@ extern crate integer_fft; // our library
 
 use integer_fft::complex::Complex;
 use integer_fft::constants::{QUART_WAV, SINE};
-use integer_fft::intfft::{copy_ab, fft_quantized};
+use integer_fft::intfft::{copy_ab, int_fft};
 //use integer_fft::iomod::{output_to_npy, read_npyi32};
 use log::{debug, info, trace};
 use std::env; // retrieve arguments
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("Array head of input file");
     display_array_head(&flip, 5);
     info!("Executing FFT logic");
-    fft_quantized(&mut flip, &mut flop, nsinebits, ndatabits);
+    int_fft(&mut flip, &mut flop, nsinebits, ndatabits);
     debug!("Array head of DFT of the input file");
     display_array_head(&flop, 5);
 
@@ -263,11 +263,11 @@ mod test {
     }
 
     #[test]
-    fn test_fft_quantized() {
-        // Perform an fft_quantized, see if it breaks
+    fn test_int_fft() {
+        // Perform an int_fft, see if it breaks
         let mut flip: [Complex; 8] = [Complex::new(100, 0); 8];
         let mut flop: [Complex; 8] = [Complex::new(100, 0); 8];
-        fft_quantized(&mut flip, &mut flop, 16, 16);
+        int_fft(&mut flip, &mut flop, 16, 16);
         // Compare output with other integer FFT
         let mut flip2: [Complex; 8] = [Complex::new(100, 0); 8];
         let mut flop2: [Complex; 8] = [Complex::new(100, 0); 8];
@@ -279,11 +279,11 @@ mod test {
     }
 
     #[test]
-    fn test_fft_quantized2() {
-        // Perform an fft_quantized, see if it breaks
+    fn test_int_fft2() {
+        // Perform an int_fft, see if it breaks
         let mut flip: [Complex; 2048] = [Complex::new(100, 0); 2048];
         let mut flop: [Complex; 2048] = [Complex::new(100, 0); 2048];
-        fft_quantized(&mut flip, &mut flop, 16, 16);
+        int_fft(&mut flip, &mut flop, 16, 16);
         // Compare output with other integer FFT
         let mut flip2: [Complex; 2048] = [Complex::new(100, 0); 2048];
         let mut flop2: [Complex; 2048] = [Complex::new(100, 0); 2048];
@@ -297,10 +297,10 @@ mod test {
     // To see clip output run: RUST_LOG=trace cargo test -- --nocapture
     #[test]
     fn test_fft_clipped() {
-        // Perform an fft_quantized with larger values than it can take
+        // Perform an int_fft with larger values than it can take
         let mut flip: [Complex; 8] = [Complex::new(100, 0); 8];
         let mut flop: [Complex; 8] = [Complex::new(100, 0); 8];
-        fft_quantized(&mut flip, &mut flop, 8, 8);
+        int_fft(&mut flip, &mut flop, 8, 8);
     }
 
     #[test]
