@@ -1,3 +1,5 @@
+// sortof depricated, decide whether this is still necessary
+
 extern crate npyz;
 
 use crate::complex::Complex;

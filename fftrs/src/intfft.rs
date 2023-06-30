@@ -1,5 +1,3 @@
-// same as intfft but uses vectors instead of arrays
-
 extern crate npyz;
 
 use crate::constants::{QUART_WAV, SINE};
