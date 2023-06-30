@@ -1,6 +1,6 @@
 extern crate npyz;
 
-use crate::Complex;
+use crate::complex::Complex;
 use npyz::WriterBuilder;
 use std::fs::File;
 use std::io;

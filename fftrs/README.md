@@ -1,6 +1,30 @@
-# How to use
+Implements Radix-2 decimation in time FFT algorithm on integer arrays of limited bitdepth. 
 
-This program performs a 2048 point integer FFT on 32 bit integer data in numpy serialized arrays, files with the `.npy` extention. If you'd like to add flexibility, feel free to play with the code, I did my best to make it easy to adapt. 
+# Quick-start python package
+
+Install the package with `pip install integer_fft`. 
+
+Import it into your python script or ipython environment with `import integer_fft`. 
+
+So far it contains only one function, `integer_fft.fft`. This function takes four arguments: 
+
+```
+xre : numpy.ndarray
+    The real componant of the Array to FFT. A real 1d numpy array whose 
+    size is a power of 2 (<=2048), with dtype="int"
+xim : numpy.ndarray
+    The imaginary componant of the Array to FFT. A real 1d numpy array 
+    whose size is a power of 2 (<=2048), with dtype="int"
+ndatabits : int
+    Positive integer between 0 and 23 inclusive. The amount of bits your 
+    data is allowed to take up throughout the FFT butterfly stages. 
+nsinebits : int
+    Positive integer between 0 and 16 inclusive. Number of bits used for
+    real and imaginary parts (each) of twiddle factors.
+```
+
+
+# You can also use rust directly 
 
 Clone this repository
 
@@ -44,13 +68,35 @@ It will output the DFT info files `<input_file_basename>_out_real.npy` and `<out
 
 
 
-## Dev stuff
+## Dev Notes
 
 *Reminder:* The optimal STD to select for the FT of an 8-bit quantized input is 35. I.e. when generating simulated data scale your gaussian noise by 35 before throwing converting to int and throwing it into the integer FFT. 
 
 *Remark:* if you'd like to display trace, debug or info logging statements, run `RUST_LOG=trace cargo run`
 
+`pyo3` breaks if on Apple's ARM machines if you don't have the following in your `~/cargo/config`, [as pointed out by Dennis in StackOverflow](https://stackoverflow.com/questions/28124221/error-linking-with-cc-failed-exit-code-1)
+
+```toml
+[target.x86_64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]
+```
+
 ## TODO
+- [x] python bindings
+- [ ] Refactor naming convention, put thought into this
+- [ ] variable sized power-of-two FFTs
+    - [ ] Switch to vector instead of static sized array?
+- [ ] increase capacity (sine way up to 1<<16 instead of 1<<11)
+
 - [ ] Change twiddle factors to 32i to expand range
 - [ ] Change how it's coded so that rounding of twiddle factors is done *well* not just with the bitshift operator >> will induce bias, make sine smaller than it should be
 - [ ] Write python script to generate bunch of `.npy` gaussian random noise
@@ -113,5 +159,6 @@ Out:
 
 [7993+i0, -1+i-3, -1+i-1, 1+i0, -1+i0, 1+i-1, 1+i-1, -1+i2, ]
 ```
+
 
 

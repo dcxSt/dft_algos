@@ -1,14 +1,11 @@
 extern crate env_logger;
 extern crate npyz;
-mod complex;
-mod constants;
-mod intfft;
-mod iomod;
+extern crate integer_fft; // our library
 
-use complex::Complex;
-use constants::{QUART_WAV, SINE};
-use intfft::{copy_ab, fft_quantized};
-use iomod::{output_to_npy, read_npyi32};
+use integer_fft::complex::Complex;
+use integer_fft::constants::{QUART_WAV, SINE};
+use integer_fft::intfft::{copy_ab, int_fft};
+//use integer_fft::iomod::{output_to_npy, read_npyi32};
 use log::{debug, info, trace};
 use std::env; // retrieve arguments
 
@@ -39,22 +36,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     // Begin ------ Change these to fit your needs
     let fname: &String = &args[1]; // Command line argument is the name of file
-    let inbitshift: usize = args[2].parse().unwrap(); // number of bits to shift input (left, see io)
+    //let inbitshift: usize = args[2].parse().unwrap(); // number of bits to shift input (left, see io)
     let ndatabits: usize = args[3].parse().unwrap(); // = 18; // max (64-16-2)/2 = 23 bits
     let nsinebits: usize = args[4].parse().unwrap(); // = 16; // max 16 bits
                                                      // End ------ Change these to fit your needs
 
     // initiate flip and flop data arrays
-    let mut flip: [Complex; 2048] = [Complex::new(0, 0); 2048];
-    let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
+    let mut flip: Vec<Complex> = Vec::from([Complex::new(0, 0); 2048]);
+    let mut flop: Vec<Complex> = Vec::from([Complex::new(0, 0); 2048]);
     // read file fname into flip array
-    read_npyi32(fname, &mut flip, inbitshift)?;
+    //read_npyi32(fname, &mut flip, inbitshift)?;
 
     // DFT the input
     debug!("Array head of input file");
     display_array_head(&flip, 5);
     info!("Executing FFT logic");
-    fft_quantized(&mut flip, &mut flop, nsinebits, ndatabits);
+    int_fft(&mut flip, &mut flop, 11u32, nsinebits, ndatabits);
     debug!("Array head of DFT of the input file");
     display_array_head(&flop, 5);
 
@@ -66,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fname_imag.truncate(fname_imag.len() - 4);
     fname_imag.push_str("_out_imag.npy");
 
-    output_to_npy(&fname_real, &fname_imag, &flop)?;
+    //output_to_npy(&fname_real, &fname_imag, &flop)?;
     info!("Done");
     Ok(())
 }
@@ -77,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // Simple three-stage DFT Radix-2 DIT
 #[allow(dead_code)]
-fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
+fn fft8(flip: &mut Vec<Complex>, flop: &mut Vec<Complex>) {
     // Decimation in time re-ordering, flip -> flop
     for idx in 0usize..8 {
         // Bit flipped idx
@@ -124,7 +121,7 @@ fn fft8(flip: &mut [Complex; 8], flop: &mut [Complex; 8]) {
 }
 
 #[allow(dead_code)]
-fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
+fn fft2048(flip: &mut Vec<Complex>, flop: &mut Vec<Complex>) {
     // Decimation in time re-ordering, flip -> flop
     for idx in 0usize..2048 {
         // Bit flipped idx
@@ -163,7 +160,7 @@ fn fft2048(flip: &mut [Complex; 2048], flop: &mut [Complex; 2048]) {
 
 // FFT for any power of two up to and including 2048
 #[allow(dead_code)]
-fn fft(flip: &mut [Complex], flop: &mut [Complex]) {
+fn fft(flip: &mut Vec::<Complex>, flop: &mut Vec<Complex>) {
     // Make sure length of arrays are a power of two
     let len = flip.len();
     assert!(len == flop.len());
@@ -237,13 +234,13 @@ mod test {
     #[test]
     fn test_fft() {
         // Perform an fft, see if it breaks
-        let mut flip: [Complex; 8] = [Complex::new(1000, 0); 8];
-        let mut flop: [Complex; 8] = [Complex::new(1000, 0); 8];
+        let mut flip: Vec<Complex> = Vec::from([Complex::new(1000, 0); 8]);
+        let mut flop: Vec<Complex> = Vec::from([Complex::new(1000, 0); 8]);
         fft(&mut flip, &mut flop);
 
         // Compare output with output of fft8, should be exact same
-        let mut flip8: [Complex; 8] = [Complex::new(1000, 0); 8];
-        let mut flop8: [Complex; 8] = [Complex::new(1000, 0); 8];
+        let mut flip8: Vec<Complex> = Vec::from([Complex::new(1000, 0); 8]);
+        let mut flop8: Vec<Complex> = Vec::from([Complex::new(1000, 0); 8]);
         fft8(&mut flip8, &mut flop8);
         for i in 0..8 {
             assert!(flip[i] == flip8[i]);
@@ -252,12 +249,12 @@ mod test {
 
         //// Compare output with fft2048, should be exact same
         // Perform 2048 point FFT with fft2048()
-        let mut flip2048: [Complex; 2048] = [Complex::new(100, 0); 2048];
-        let mut flop2048: [Complex; 2048] = [Complex::new(0, 0); 2048];
+        let mut flip2048: Vec<Complex> = Vec::from([Complex::new(100, 0); 2048]);
+        let mut flop2048: Vec<Complex> = Vec::from([Complex::new(0, 0); 2048]);
         fft2048(&mut flip2048, &mut flop2048);
         // Perform 2048 point FFT with fft()
-        let mut flip: [Complex; 2048] = [Complex::new(100, 0); 2048];
-        let mut flop: [Complex; 2048] = [Complex::new(0, 0); 2048];
+        let mut flip: Vec<Complex> = Vec::from([Complex::new(100, 0); 2048]);
+        let mut flop: Vec<Complex> = Vec::from([Complex::new(0, 0); 2048]);
         fft(&mut flip, &mut flop);
         for i in 0..2048 {
             assert!(flip[i] == flip2048[i]);
@@ -266,14 +263,14 @@ mod test {
     }
 
     #[test]
-    fn test_fft_quantized() {
-        // Perform an fft_quantized, see if it breaks
-        let mut flip: [Complex; 8] = [Complex::new(100, 0); 8];
-        let mut flop: [Complex; 8] = [Complex::new(100, 0); 8];
-        fft_quantized(&mut flip, &mut flop, 16, 16);
+    fn test_int_fft() {
+        // Perform an int_fft, see if it breaks
+        let mut flip: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
+        let mut flop: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
+        int_fft(&mut flip, &mut flop, 3, 16, 16);
         // Compare output with other integer FFT
-        let mut flip2: [Complex; 8] = [Complex::new(100, 0); 8];
-        let mut flop2: [Complex; 8] = [Complex::new(100, 0); 8];
+        let mut flip2: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
+        let mut flop2: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
         fft(&mut flip2, &mut flop2);
         for i in 0..8 {
             assert!(flip[i] == flip2[i]);
@@ -282,14 +279,14 @@ mod test {
     }
 
     #[test]
-    fn test_fft_quantized2() {
-        // Perform an fft_quantized, see if it breaks
-        let mut flip: [Complex; 2048] = [Complex::new(100, 0); 2048];
-        let mut flop: [Complex; 2048] = [Complex::new(100, 0); 2048];
-        fft_quantized(&mut flip, &mut flop, 16, 16);
+    fn test_int_fft2() {
+        // Perform an int_fft, see if it breaks
+        let mut flip: Vec<Complex> = Vec::from([Complex::new(100, 0); 2048]);
+        let mut flop: Vec<Complex> = Vec::from([Complex::new(100, 0); 2048]);
+        int_fft(&mut flip, &mut flop, 11, 16, 16);
         // Compare output with other integer FFT
-        let mut flip2: [Complex; 2048] = [Complex::new(100, 0); 2048];
-        let mut flop2: [Complex; 2048] = [Complex::new(100, 0); 2048];
+        let mut flip2: Vec<Complex> = Vec::from([Complex::new(100, 0); 2048]);
+        let mut flop2: Vec<Complex> = Vec::from([Complex::new(100, 0); 2048]);
         fft(&mut flip2, &mut flop2);
         for i in 0..2048 {
             assert!(flip[i] == flip2[i]);
@@ -300,17 +297,28 @@ mod test {
     // To see clip output run: RUST_LOG=trace cargo test -- --nocapture
     #[test]
     fn test_fft_clipped() {
-        // Perform an fft_quantized with larger values than it can take
-        let mut flip: [Complex; 8] = [Complex::new(100, 0); 8];
-        let mut flop: [Complex; 8] = [Complex::new(100, 0); 8];
-        fft_quantized(&mut flip, &mut flop, 8, 8);
+        // Perform an int_fft with larger values than it can take
+        let mut flip: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
+        let mut flop: Vec<Complex> = Vec::from([Complex::new(100, 0); 8]);
+        int_fft(&mut flip, &mut flop, 3, 8, 8);
     }
 
     #[test]
     fn test_copy_ab() {
         // copy a into b
-        let a: [Complex; 8] = [Complex::new(1, 1); 8];
-        let mut b: [Complex; 8] = [Complex::new(0, 0); 8];
+        let a: Vec<Complex> = Vec::from([Complex::new(1, 1); 8]);
+        let mut b: Vec<Complex> = Vec::from([Complex::new(0, 0); 8]);
+        copy_ab(&a, &mut b);
+        for (ai, bi) in a.iter().zip(b.iter()) {
+            assert!(ai == bi);
+        }
+    }
+
+    #[test]
+    fn test_copy_ab_vec() {
+        // copy a into b
+        let a: Vec<Complex> = Vec::from([Complex::new(1, 1); 8]);
+        let mut b: Vec<Complex> = Vec::from([Complex::new(0, 0); 8]);
         copy_ab(&a, &mut b);
         for (ai, bi) in a.iter().zip(b.iter()) {
             assert!(ai == bi);

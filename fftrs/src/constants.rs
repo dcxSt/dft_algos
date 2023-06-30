@@ -1,3 +1,5 @@
+// TODO: increase resolution / max length of array
+// pub const MAXLEN: usize = 65536; // 2^16
 // index of a quarter wave
 pub const QUART_WAV: usize = 2048 / 4 + 1;
 // 16 bit SINE wave: ranges between 2^15 - 1 and - (2^15 -1) or 1<<15
