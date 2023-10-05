@@ -23,6 +23,8 @@ nsinebits : int
     real and imaginary parts (each) of twiddle factors.
 ```
 
+The shift schedule is on 'full' and cannot be changed (for now).
+
 
 ### Example usage in Python
 
