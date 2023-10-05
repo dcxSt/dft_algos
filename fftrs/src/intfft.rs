@@ -55,7 +55,7 @@ fn butterfly(flip: &mut Vec<Complex>,
                 let mut d2 = flip[chunk * size + size / 2 + k] * twiddle;
                 // normalize, twiddle factor is order 2^(nsinebits - 1)
                 d2.bitshift_right(nsinebits - 1);
-                // bitshift right by 1 prevent Butterfly overflow
+                // Bitshift right by 1 prevent Butterfly overflow/saturate
                 d1.bitshift_right(1);
                 d2.bitshift_right(1);
                 // Set next stage butterfly values

@@ -1,4 +1,4 @@
-Implements Radix-2 decimation in time FFT algorithm on integer arrays of limited bitdepth. 
+Implements Radix-2 decimation FFT algorithm on integer arrays of limited bitdepth. 
 
 # Quick-start python package
 
@@ -23,6 +23,18 @@ nsinebits : int
     real and imaginary parts (each) of twiddle factors.
 ```
 
+
+### Example usage in Python
+
+```python
+import numpy as np
+import integer_fft
+N = 1<<11                               # Size of array to FFT
+re = np.random.randn(N) * 1024          # Initiate real array
+re = np.asarray(re, dtype='int')        # Type casting to integer *required*
+im = np.zeros(N, dtype='int')           # Init imaginary componant
+ft = integer_fft.fft(re, im, 16, 16)    # Take fast integer Fourier Transform
+```
 
 # You can also use rust directly 
 
@@ -69,6 +81,23 @@ It will output the DFT info files `<input_file_basename>_out_real.npy` and `<out
 
 
 ## Dev Notes
+
+To build the python package, enter the environment (and deactivate any active conda envs).
+
+```
+source .env/bin/activate && conda deactivate
+```
+
+Build with [maturin](https://package.wiki/maturin), which you can pip-install if you don't already have it. 
+
+```
+maturin develop
+```
+
+See the help menu to publish `maturin -h`. 
+
+
+---
 
 *Reminder:* The optimal STD to select for the FT of an 8-bit quantized input is 35. I.e. when generating simulated data scale your gaussian noise by 35 before throwing converting to int and throwing it into the integer FFT. 
 
