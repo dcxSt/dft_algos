@@ -2,6 +2,8 @@ Implements Radix-2 decimation FFT algorithm on integer arrays of limited bitdept
 
 # Quick-start python package
 
+Install dependencies `pip install maturin`. 
+
 Install the package with `pip install integer_fft`. 
 
 Import it into your python script or ipython environment with `import integer_fft`. 
